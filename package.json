@@ -1,0 +1,26 @@
+{
+  "name": "bundler",
+  "version": "1.0.0",
+  "description": "a monorepo consisting of all bundler related packages",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MapColonies/bundler.git"
+  },
+  "author": "MapColonies",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MapColonies/bundler/issues"
+  },
+  "homepage": "https://github.com/MapColonies/bundler#readme",
+  "workspaces": [
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@types/node": "^18.11.18",
+    "lerna": "^6.3.0",
+    "typescript": "^4.9.4"
+  }
+}
