@@ -1,10 +1,10 @@
 import { mkdir, rm } from 'fs/promises';
 import { basename, dirname, join } from 'path';
 import { nanoid } from 'nanoid';
+import { RepositoryId ,downloadRepository } from '@bundler/github';
 import * as tar from 'tar';
 import { writeBuffer } from '../fs';
-import { downloadRepository, stringifyRepositoryId } from '../github';
-import { GITHUB_ORG } from '../github/constants';
+// import { GITHUB_ORG } from '../github/constants';
 import { dockerfileNameToKind } from '../processes/docker';
 import { DockerCommander } from '../processes/dockerCommander';
 import { DockerKind } from '../processes/types';
@@ -20,7 +20,12 @@ import {
   DEFAULT_CONTAINER_REGISTRY,
   IMAGES_DIR,
   DEFAULT_OPTIONS,
+  DEFAULT_GITHUB_ORG,
 } from './constants';
+
+const stringifyRepositoryId = (id: RepositoryId): string => {
+  return `${id.owner ?? DEFAULT_GITHUB_ORG}-${id.name}-${id.ref ?? DEFAULT_BRANCH}`;
+};
 
 export class Bundler {
   private readonly commander: DockerCommander;
@@ -101,7 +106,7 @@ export class Bundler {
 
   private async download(): Promise<void> {
     for (const repo of this.repositoryProfiles) {
-      const arrayBuffer = await downloadRepository({ ...repo.id, owner: repo.id.owner ?? GITHUB_ORG, ref: repo.id.ref ?? 'master' }, 'tarball');
+      const arrayBuffer = await downloadRepository({ ...repo.id, owner: repo.id.owner ?? DEFAULT_GITHUB_ORG, ref: repo.id.ref ?? 'master' }, 'tarball');
 
       await mkdir(repo.workdir.path, { recursive: true });
 

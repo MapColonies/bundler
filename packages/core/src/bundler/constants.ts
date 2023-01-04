@@ -4,6 +4,7 @@ import { BundlerOptions } from './interfaces';
 export const TEMP_DIR = '/tmp/temp';
 export const IMAGES_DIR = 'images';
 
+export const DEFAULT_GITHUB_ORG = 'MapColonies';
 export const DEFAULT_BRANCH = 'master';
 export const DEFAULT_TAG = 'latest';
 export const DEFAULT_CONTAINER_REGISTRY = 'acrarolibotnonprod.azurecr.io';

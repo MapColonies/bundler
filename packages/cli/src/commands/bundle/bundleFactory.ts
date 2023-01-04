@@ -1,28 +1,22 @@
-import { Bundler, Repository, BundlerOptions } from '@bundler/core';
+import { Bundler, BundlerOptions, CleanupMode } from '@bundler/core';
+import { RepositoryId } from '@bundler/github';
 import { FactoryFunction } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
 import { Arguments, Argv, CommandModule } from 'yargs';
 import { ExitCodes, EXIT_CODE, SERVICES } from '../../common/constants';
 import { GlobalArguments } from '../../cliBuilderFactory';
+import { checkWrapper, repoProvidedCheck } from './checks';
+import { coerceWrapper, repositoriesCoerce, repositoryCoerce } from './coerces';
+import { command, describe} from './constants'
 
-const PUBLIC_REPO = 'replica-server';
-const OTHER_PUBLIC_REPO = 'microcOSM';
-const PRIVATE_REPO = 'osm-sync-nifi';
+interface BundleRequest {
+  repository?: RepositoryId;
+  repositories?: RepositoryId[];
+  buildImageLocally: boolean;
+  includeMigrations: boolean;
+}
 
-const REPOSITORIES: Repository[] = [
-  { id: { name: PUBLIC_REPO, ref: 'v1.0.1' }, buildImageLocally: false, includeMigrations: true },
-  { id: { name: PUBLIC_REPO, ref: 'v1.0.0' }, buildImageLocally: true, includeMigrations: false },
-  // { id: { name: OTHER_PUBLIC_REPO, ref: 'main' }, buildImageLocally: true },
-  { id: { name: PRIVATE_REPO }, buildImageLocally: true },
-];
-
-type BundleArguments = GlobalArguments & Required<BundlerOptions>;
-
-const command = 'bundle';
-
-const describe = 'bundle github repositories into a single archive';
-
-export const BUNDLE_COMMAND_FACTORY = Symbol('BundleCommandFactory');
+export type BundleArguments = GlobalArguments & Required<Omit<BundlerOptions, 'logger'> & BundleRequest>;
 
 export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments, BundleArguments>> = (dependencyContainer) => {
   const logger = dependencyContainer.resolve<Logger>(SERVICES.LOGGER);
@@ -38,7 +32,7 @@ export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments
       })
       .option('outputPath', {
         alias: 'o',
-        describe: 'the bundler archive output file path',
+        describe: 'the bundler output file path',
         nargs: 1,
         type: 'string',
         demandOption: true,
@@ -46,22 +40,47 @@ export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments
       .option('cleanupMode', {
         alias: 'c',
         describe: 'the bundle execution cleanup mode',
-        choices: ['none', 'on-the-fly', 'post'],
-        default: 'on-the-fly',
+        choices: ['none', 'on-the-fly', 'post'] as CleanupMode[],
+        nargs: 1,
+        type: 'string',
+        default: 'on-the-fly' as CleanupMode,
       })
-      .option('isDebugMode', { alias: ['d', 'debug'], describe: 'execute in debug mode', nargs: 1, type: 'boolean', default: false });
+      .option('isDebugMode', { alias: ['d', 'debug'], describe: 'execute in debug mode', nargs: 1, type: 'boolean', default: false })
+      .option('buildImageLocally', {
+        alias: ['b', 'build-image-locally'],
+        describe: 'build image(s) locally',
+        nargs: 1,
+        type: 'boolean',
+        default: false,
+      })
+      .option('includeMigrations', {
+        alias: ['m', 'include-migrations'],
+        describe: 'include the migrations image of given repository',
+        nargs: 1,
+        type: 'boolean',
+        default: false,
+      })
+      .option('repository', { alias: 'repo', describe: 'the repository to bundle', nargs: 1, type: 'string', conflicts: ['repositories'] })
+      .option('repositories', { alias: 'repos', describe: 'the repositories to bundle', array: true, type: 'string', conflicts: ['repository'] })
+      .check(checkWrapper(repoProvidedCheck, logger))
+      .coerce('repository', coerceWrapper(repositoryCoerce, logger))
+      .coerce('repositories', coerceWrapper(repositoriesCoerce, logger))
 
     return args as Argv<BundleArguments>;
   };
 
   const handler = async (args: Arguments<BundleArguments>): Promise<void> => {
-    const { workdir, outputPath, cleanupMode, isDebugMode, verbose } = args;
+    const { workdir, outputPath, cleanupMode, isDebugMode, verbose, repositories, repository, buildImageLocally, includeMigrations } = args;
 
-    logger.debug({ msg: 'executing command', command, args: { workdir, outputPath, cleanupMode, isDebugMode, verbose } });
+    const bundler = new Bundler({ workdir, outputPath, cleanupMode, isDebugMode, verbose, logger });
+
+    const reposInput = (repository as RepositoryId | undefined) ? [repository] : repositories;
+    const reposForBundle = reposInput.map((repoId) => ({ id: repoId, buildImageLocally, includeMigrations }));
+
+    logger.debug({ msg: 'executing command', command, args: { workdir, outputPath, cleanupMode, isDebugMode, verbose }, reposForBundle });
 
     try {
-      const bundler = new Bundler({ workdir, outputPath, cleanupMode, isDebugMode, verbose, logger });
-      await bundler.bundle(REPOSITORIES);
+      await bundler.bundle(reposForBundle);
 
       dependencyContainer.register(EXIT_CODE, { useValue: ExitCodes.SUCCESS });
     } catch (error) {

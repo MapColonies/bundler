@@ -1,11 +1,6 @@
+import { RepositoryId } from '@bundler/github';
 import { ILogger } from '../common/types';
 import { DockerKind } from '../processes/types';
-
-export interface RepositoryId {
-  owner?: string;
-  name: string;
-  ref?: string;
-}
 
 export interface Repository {
   id: RepositoryId;
