@@ -1,22 +1,25 @@
 import { Bundler, BundlerOptions, CleanupMode } from '@bundler/core';
-import { RepositoryId } from '@bundler/github';
+import { IGithubClient, RepositoryId } from '@bundler/github';
 import { FactoryFunction } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
 import { Arguments, Argv, CommandModule } from 'yargs';
 import { ExitCodes, EXIT_CODE, SERVICES } from '../../common/constants';
 import { GlobalArguments } from '../../cliBuilderFactory';
-import { checkWrapper, repoProvidedCheck } from './checks';
-import { coerceWrapper, repositoriesCoerce, repositoryCoerce } from './coerces';
-import { command, describe} from './constants'
+import { checkWrapper } from '../../wrappers/check';
+import { coerceWrapper } from '../../wrappers/coerce';
+import { repoProvidedCheck } from './checks';
+import { repositoriesCoerce, repositoryCoerce } from './coerces';
+import { command, describe } from './constants';
 
 interface BundleRequest {
   repository?: RepositoryId;
   repositories?: RepositoryId[];
   buildImageLocally: boolean;
   includeMigrations: boolean;
+  includeAssets: boolean;
 }
 
-export type BundleArguments = GlobalArguments & Required<Omit<BundlerOptions, 'logger'> & BundleRequest>;
+export type BundleArguments = GlobalArguments & Required<Omit<BundlerOptions, 'logger' | 'githubClient'> & BundleRequest>;
 
 export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments, BundleArguments>> = (dependencyContainer) => {
   const logger = dependencyContainer.resolve<Logger>(SERVICES.LOGGER);
@@ -47,7 +50,7 @@ export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments
       })
       .option('isDebugMode', { alias: ['d', 'debug'], describe: 'execute in debug mode', nargs: 1, type: 'boolean', default: false })
       .option('buildImageLocally', {
-        alias: ['b', 'build-image-locally'],
+        alias: ['l', 'build-image-locally'],
         describe: 'build image(s) locally',
         nargs: 1,
         type: 'boolean',
@@ -60,27 +63,37 @@ export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments
         type: 'boolean',
         default: false,
       })
+      .option('includeAssets', {
+        alias: ['a', 'include-assets'],
+        describe: 'include the release assets of given repository',
+        nargs: 1,
+        type: 'boolean',
+        default: false,
+      })
       .option('repository', { alias: 'repo', describe: 'the repository to bundle', nargs: 1, type: 'string', conflicts: ['repositories'] })
       .option('repositories', { alias: 'repos', describe: 'the repositories to bundle', array: true, type: 'string', conflicts: ['repository'] })
       .check(checkWrapper(repoProvidedCheck, logger))
       .coerce('repository', coerceWrapper(repositoryCoerce, logger))
-      .coerce('repositories', coerceWrapper(repositoriesCoerce, logger))
+      .coerce('repositories', coerceWrapper(repositoriesCoerce, logger));
 
     return args as Argv<BundleArguments>;
   };
 
   const handler = async (args: Arguments<BundleArguments>): Promise<void> => {
-    const { workdir, outputPath, cleanupMode, isDebugMode, verbose, repositories, repository, buildImageLocally, includeMigrations } = args;
+    const { workdir, outputPath, cleanupMode, isDebugMode, verbose, repositories, repository, buildImageLocally, includeMigrations, includeAssets } =
+      args;
 
-    const bundler = new Bundler({ workdir, outputPath, cleanupMode, isDebugMode, verbose, logger });
+    const githubClient = dependencyContainer.resolve<IGithubClient>(SERVICES.GITHUB_CLIENT);
+
+    const bundler = new Bundler({ workdir, outputPath, cleanupMode, isDebugMode, verbose, logger, githubClient });
 
     const reposInput = (repository as RepositoryId | undefined) ? [repository] : repositories;
-    const reposForBundle = reposInput.map((repoId) => ({ id: repoId, buildImageLocally, includeMigrations }));
+    const bundleRequest = reposInput.map((repoId) => ({ id: repoId, buildImageLocally, includeMigrations, includeAssets }));
 
-    logger.debug({ msg: 'executing command', command, args: { workdir, outputPath, cleanupMode, isDebugMode, verbose }, reposForBundle });
+    logger.debug({ msg: 'executing command', command, args: { workdir, outputPath, cleanupMode, isDebugMode, verbose }, payload: bundleRequest });
 
     try {
-      await bundler.bundle(reposForBundle);
+      await bundler.bundle(bundleRequest);
 
       dependencyContainer.register(EXIT_CODE, { useValue: ExitCodes.SUCCESS });
     } catch (error) {

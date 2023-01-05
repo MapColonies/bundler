@@ -1,10 +1,10 @@
 import { mkdir, rm } from 'fs/promises';
 import { basename, dirname, join } from 'path';
 import { nanoid } from 'nanoid';
-import { RepositoryId ,downloadRepository } from '@bundler/github';
+import axios, { AxiosInstance } from 'axios';
+import { RepositoryId, IGithubClient, GithubClient } from '@bundler/github';
 import * as tar from 'tar';
 import { writeBuffer } from '../fs';
-// import { GITHUB_ORG } from '../github/constants';
 import { dockerfileNameToKind } from '../processes/docker';
 import { DockerCommander } from '../processes/dockerCommander';
 import { DockerKind } from '../processes/types';
@@ -20,16 +20,21 @@ import {
   DEFAULT_CONTAINER_REGISTRY,
   IMAGES_DIR,
   DEFAULT_OPTIONS,
-  DEFAULT_GITHUB_ORG,
+  GITHUB_ORG,
+  SOURCE_CODE_ARCHIVE,
+  ASSETS_DIR,
+  HTTP_CLIENT_TIMEOUT,
 } from './constants';
 
 const stringifyRepositoryId = (id: RepositoryId): string => {
-  return `${id.owner ?? DEFAULT_GITHUB_ORG}-${id.name}-${id.ref ?? DEFAULT_BRANCH}`;
+  return `${id.owner ?? GITHUB_ORG}-${id.name}-${id.ref ?? DEFAULT_BRANCH}`;
 };
 
 export class Bundler {
-  private readonly commander: DockerCommander;
   private readonly logger: ILogger | undefined;
+  private readonly githubClient: IGithubClient;
+  private readonly axiosClient: AxiosInstance;
+  private readonly commander: DockerCommander;
 
   private bundleId: string = nanoid();
   private repositoryProfiles: RepositoryProfile[] = [];
@@ -40,6 +45,8 @@ export class Bundler {
   // TODO: handle verbosity and logging including for commands
   public constructor(private readonly config: BundlerOptions = DEFAULT_OPTIONS) {
     this.logger = config.logger;
+    this.githubClient = config.githubClient ?? new GithubClient();
+    this.axiosClient = axios.create({ timeout: HTTP_CLIENT_TIMEOUT });
     this.commander = new DockerCommander({ verbose: config.verbose, logger: this.logger });
 
     this.commander.on('buildCompleted', this.onBuildCompleted.bind(this));
@@ -87,12 +94,17 @@ export class Bundler {
     };
 
     const repoArchivePath: BundlePath = {
-      path: join(repoWorkdir.path, `${repository.id.name}-${repository.id.ref ?? DEFAULT_BRANCH}-sourcecode.${TAR_GZIP_ARCHIVE_FORMAT}`),
+      path: join(repoWorkdir.path, `${SOURCE_CODE_ARCHIVE}.${TAR_GZIP_ARCHIVE_FORMAT}`),
       shouldMake: false,
       shouldRemove: false,
     };
 
     const extractionDir: BundlePath = { path: join(repoWorkdir.path, nanoid()), shouldMake: true, shouldRemove: true };
+
+    let assetsDir: BundlePath | undefined = undefined;
+    if (repository.includeAssets === true) {
+      assetsDir = { path: join(repoWorkdir.path, ASSETS_DIR), shouldMake: true, shouldRemove: false };
+    }
 
     return {
       ...repository,
@@ -100,18 +112,48 @@ export class Bundler {
       workdir: repoWorkdir,
       archive: repoArchivePath,
       extraction: extractionDir,
+      assets: assetsDir,
       dockerfiles: [],
     };
   }
 
   private async download(): Promise<void> {
-    for (const repo of this.repositoryProfiles) {
-      const arrayBuffer = await downloadRepository({ ...repo.id, owner: repo.id.owner ?? DEFAULT_GITHUB_ORG, ref: repo.id.ref ?? 'master' }, 'tarball');
+    const archivePromises = this.repositoryProfiles.map(async (repo) => {
+      const repoId = { ...repo.id, owner: repo.id.owner ?? GITHUB_ORG, ref: repo.id.ref ?? DEFAULT_BRANCH };
+
+      const arrayBuffer = await this.githubClient.downloadRepository(repoId, 'tarball');
 
       await mkdir(repo.workdir.path, { recursive: true });
 
       await writeBuffer(arrayBuffer, repo.archive.path);
-    }
+    });
+
+    const assetsPromises = this.repositoryProfiles.map(async (repo) => {
+      const repoId = { ...repo.id, owner: repo.id.owner ?? GITHUB_ORG, ref: repo.id.ref ?? DEFAULT_BRANCH };
+
+      if (repo.includeAssets === true) {
+        // TODO: dont throw if release not found
+        const assets = await this.githubClient.listAssets(repoId);
+
+        if (assets.length === 0) {
+          return Promise.resolve();
+        }
+
+        await mkdir((repo.assets as BundlePath).path, { recursive: true });
+
+        const singleRepoAssets = assets.map(async (asset) => {
+          const { name, browser_download_url: downloadUrl } = asset;
+
+          const buffer = await this.axiosClient.get<Buffer>(downloadUrl, { responseType: 'arraybuffer' });
+
+          await writeBuffer(buffer.data, join((repo.assets as BundlePath).path, name));
+        });
+
+        await Promise.all(singleRepoAssets);
+      }
+    });
+
+    await Promise.all([...archivePromises, ...assetsPromises]);
   }
 
   private async profileRepositories(): Promise<void> {

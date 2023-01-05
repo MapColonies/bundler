@@ -64,8 +64,8 @@ export const dockerPull = async (args: DockerPullArgs & CommanderOptions): Promi
   }
 };
 
-export const dockerVersion = async (args: CommanderOptions): Promise<void> => {
-  const childProcess = spawnChildProcess(DOCKER_EXEC, Command.VERSION, [], undefined, args.verbose, args.logger);
+export const dockerVersion = async (args?: CommanderOptions): Promise<void> => {
+  const childProcess = spawnChildProcess(DOCKER_EXEC, Command.VERSION, [], undefined, args?.verbose, args?.logger);
 
   const { exitCode, stderr } = await promisifyChildProcess(childProcess);
 

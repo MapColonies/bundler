@@ -1,2 +1,3 @@
-export { RepositoryId, RepositoryType, GithubRepository } from './types';
-export { downloadRepository, getOrgRepositories } from './funcs';
+export { GithubClient } from './client';
+export { RepositoryType, GithubRepository } from './client/types';
+export { IGithubClient, RepositoryId } from './client/interfaces';

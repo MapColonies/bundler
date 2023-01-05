@@ -1,40 +1,33 @@
-import { ILogger } from '@bundler/core/src/common/types';
+import { GITHUB_ORG, DEFAULT_BRANCH } from '@bundler/core';
 import { RepositoryId } from '@bundler/github';
 import { CheckError } from '../../../common/errors';
-import { isRepoValid, repoStrToRepoId } from '../helpers';
+import { CoerceFunc } from '../../../wrappers/coerce';
+import { MAX_DELIMITER_OCCURRENCES, NAME_TO_REF_DELIMITER, OWNER_TO_NAME_DELIMITER } from '../constants';
 
-export type CoerceFunc<T, C> = (arg: T) => C;
+const isRepoValid = (repoStr: string): boolean => {
+  return ![OWNER_TO_NAME_DELIMITER, NAME_TO_REF_DELIMITER].some((delimiter) => repoStr.split(delimiter).length > MAX_DELIMITER_OCCURRENCES + 1);
+};
 
-export const coerceWrapper = <T, C>(coerce: CoerceFunc<T, C>, logger?: ILogger): CoerceFunc<T, C> => {
-  const wrapper: CoerceFunc<T, C> = (arg) => {
-    try {
-      return coerce(arg);
-    } catch (err) {
-      if (err instanceof CheckError) {
-        logger?.error({
-          msg: err.message,
-          argument: err.argument,
-          received: err.received,
-        });
-      }
-      throw err;
-    }
-  };
-  return wrapper;
+const repoStrToRepoId = (repo: string): RepositoryId => {
+  const [ownerAndName, ref] = repo.split(NAME_TO_REF_DELIMITER);
+  const [name, owner] = ownerAndName.split(OWNER_TO_NAME_DELIMITER).reverse();
+  return { owner: (owner as string | undefined) ?? GITHUB_ORG, name, ref: (ref as string | undefined) ?? DEFAULT_BRANCH };
 };
 
 export const repositoryCoerce: CoerceFunc<string, RepositoryId> = (arg) => {
-  console.log('repositoryCoerce');
   if (!isRepoValid(arg)) {
     throw new CheckError('repository must be in the format of {owner}/{name}@{ref}', 'repository', arg);
   }
+
   return repoStrToRepoId(arg);
 };
 
 export const repositoriesCoerce: CoerceFunc<string[], RepositoryId[]> = (arg) => {
-  if (arg.some((repo) => !isRepoValid(repo))) {
+  const repos = [...new Set(arg)];
+
+  if (repos.some((repo) => !isRepoValid(repo))) {
     throw new CheckError('repository must be in the format of {owner}/{name}@{ref}', 'repositories', arg);
   }
 
-  return arg.map((repo) => repoStrToRepoId(repo));
+  return repos.map((repo) => repoStrToRepoId(repo));
 };

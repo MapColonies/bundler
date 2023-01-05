@@ -7,6 +7,8 @@ import { bundleCommandFactory } from './commands/bundle/bundleFactory';
 import { BUNDLE_COMMAND_FACTORY } from './commands/bundle/constants';
 import { LIST_COMMAND_FACTORY } from './commands/list/constants';
 import { listCommandFactory } from './commands/list/listFactory';
+import { VERIFY_COMMAND_FACTORY } from './commands/verify/constants';
+import { verifyCommandFactory } from './commands/verify/verifyFactory';
 
 export interface RegisterOptions {
   override?: InjectionObject<unknown>[];
@@ -17,11 +19,11 @@ export const registerExternalValues = (options?: RegisterOptions): DependencyCon
   const logger = jsLogger({ level: 'debug', prettyPrint: true });
 
   const dependencies: InjectionObject<unknown>[] = [
+    { token: SERVICES.LOGGER, provider: { useValue: logger } },
     { token: CLI_BUILDER, provider: { useFactory: cliBuilderFactory } },
     { token: BUNDLE_COMMAND_FACTORY, provider: { useFactory: bundleCommandFactory } },
     { token: LIST_COMMAND_FACTORY, provider: { useFactory: listCommandFactory } },
-    //   { token: CREATE_MANAGER_FACTORY, provider: { useFactory: createManagerFactory } },
-    { token: SERVICES.LOGGER, provider: { useValue: logger } },
+    { token: VERIFY_COMMAND_FACTORY, provider: { useFactory: verifyCommandFactory } },
     { token: EXIT_CODE, provider: { useValue: ExitCodes.SUCCESS } },
   ];
 

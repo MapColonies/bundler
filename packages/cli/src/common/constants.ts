@@ -8,7 +8,7 @@ export const EXIT_CODE = Symbol('exitCode');
 
 export const SERVICES: Record<string, symbol> = {
   LOGGER: Symbol('Logger'),
-  CONFIG: Symbol('Config'),
+  GITHUB_CLIENT: Symbol('GithubClient'),
 };
 
 export const ExitCodes = {

@@ -1,14 +1,17 @@
 import { FactoryFunction } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
-import { getOrgRepositories, GithubRepository, RepositoryType } from '@bundler/github';
+import { GithubRepository, RepositoryType, IGithubClient } from '@bundler/github';
+import { GITHUB_ORG } from '@bundler/core';
 import { Arguments, Argv, CommandModule } from 'yargs';
-import { ExitCodes, EXIT_CODE, SERVICES } from '../../common/constants';
 import { GlobalArguments } from '../../cliBuilderFactory';
+import { ExitCodes, EXIT_CODE, SERVICES } from '../../common/constants';
+import { checkWrapper } from '../../wrappers/check';
 import { command, describe } from './constants';
+import { visibilityTokenImplicationCheck } from './checks';
 
-interface ListArguments extends GlobalArguments {
-    visibility: RepositoryType;
-    topics?: string[];
+export interface ListArguments extends GlobalArguments {
+  visibility: RepositoryType;
+  topics?: string[];
 }
 
 export const listCommandFactory: FactoryFunction<CommandModule<GlobalArguments, ListArguments>> = (dependencyContainer) => {
@@ -24,7 +27,8 @@ export const listCommandFactory: FactoryFunction<CommandModule<GlobalArguments, 
         type: 'string',
         default: 'all' as RepositoryType,
       })
-      .option('topics', { alias: 't', describe: 'filter by topics', array: true, type: 'string' });
+      .option('topics', { alias: 't', describe: 'filter by topics', array: true, type: 'string' })
+      .check(checkWrapper(visibilityTokenImplicationCheck, logger));
 
     return args as Argv<ListArguments>;
   };
@@ -32,15 +36,16 @@ export const listCommandFactory: FactoryFunction<CommandModule<GlobalArguments, 
   const handler = async (args: Arguments<ListArguments>): Promise<void> => {
     const { visibility, topics } = args;
 
+    const githubClient = dependencyContainer.resolve<IGithubClient>(SERVICES.GITHUB_CLIENT);
+
     const filter = topics ? { topics } : undefined;
 
     logger.debug({ msg: 'executing command', command, args: { visibility, topics }, filter });
 
     try {
-      // TODO: fetch org name
       // TODO: spinify
       // TODO: table print
-      const repos: GithubRepository[] = await getOrgRepositories('MapColonies', visibility, filter);
+      const repos: GithubRepository[] = await githubClient.listRepositories(GITHUB_ORG, visibility, filter);
 
       logger.debug({ msg: 'got repositories', count: repos.length });
 
