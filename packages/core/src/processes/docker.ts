@@ -1,7 +1,5 @@
-import { DOCKER_FILE, MIGRATIONS_DOCKER_FILE } from '../bundler/constants';
-import { DockerKind } from './types';
 import { DockerBuildArgs, DockerPullArgs, DockerSaveArgs, EnvOptions } from './interfaces';
-import { CommanderOptions } from './dockerCommander';
+import { CommanderOptions } from './commander';
 import { spawnChildProcess, promisifyChildProcess } from '.';
 
 enum Command {
@@ -74,10 +72,10 @@ export const dockerVersion = async (args?: CommanderOptions): Promise<void> => {
   }
 };
 
-export const dockerfileNameToKind = (name: string): DockerKind | undefined => {
-  if (name === DOCKER_FILE) {
-    return DockerKind.SERVICE;
-  } else if (name === MIGRATIONS_DOCKER_FILE) {
-    return DockerKind.MIGRATION;
-  }
-};
+// export const dockerfileNameToKind = (name: string): ExternalKind | undefined => {
+//   if (name === DOCKER_FILE) {
+//     return ExternalKind.DOCKER_SERVICE;
+//   } else if (name === MIGRATIONS_DOCKER_FILE) {
+//     return ExternalKind.DOCKER_MIGRATION;
+//   }
+// };

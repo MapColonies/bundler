@@ -1,15 +1,23 @@
 import { TypedEmitter } from 'tiny-typed-emitter';
 import { ILogger } from '../common/types';
 import { dockerBuild, dockerPull, dockerSave, DOCKER_EXEC } from './docker';
-import { DockerBuildArgs, DockerPullArgs, DockerSaveArgs, EnvOptions, Image } from './interfaces';
+import { DockerBuildArgs, DockerPullArgs, DockerSaveArgs, EnvOptions, HelmPackageArgs, Image } from './interfaces';
+import { helmPackage, HELM_EXEC } from './helm';
 import { terminateSpawns } from '.';
 
-interface DockerCommanderEvents {
+interface BaseCommanderEvents {
+  commandFailed: (obj: unknown, error: unknown, message?: string) => void;
+  terminateCompleted: () => void;
+}
+
+interface HelmCommanderEvents extends BaseCommanderEvents {
+  packageCompleted: (packageId: string) => Promise<void> | void;
+}
+
+interface DockerCommanderEvents extends BaseCommanderEvents {
   buildCompleted: (image: Image) => Promise<void> | void;
   pullCompleted: (image: Image) => Promise<void> | void;
   saveCompleted: (image: Image) => Promise<void> | void;
-  commandFailed: (image: Image, error: unknown, message?: string) => void;
-  terminateCompleted: () => void;
 }
 
 export interface CommanderOptions {
@@ -17,7 +25,7 @@ export interface CommanderOptions {
   logger?: ILogger;
 }
 
-export class DockerCommander extends TypedEmitter<DockerCommanderEvents> {
+export class Commander extends TypedEmitter<DockerCommanderEvents & HelmCommanderEvents> {
   public constructor(private readonly options?: CommanderOptions) {
     super();
   }
@@ -52,8 +60,21 @@ export class DockerCommander extends TypedEmitter<DockerCommanderEvents> {
     }
   }
 
+  public async package(args: HelmPackageArgs): Promise<void> {
+    try {
+      await helmPackage({ ...args, ...this.options });
+      this.emit('packageCompleted', args.packageId);
+    } catch (error) {
+      this.emit('commandFailed', args.packageId, error);
+      throw error;
+    }
+  }
+
   public terminate(): void {
-    terminateSpawns(DOCKER_EXEC);
+    [DOCKER_EXEC, HELM_EXEC].forEach((spawn) => {
+      terminateSpawns(spawn);
+    });
+
     this.emit('terminateCompleted');
   }
 }

@@ -1,12 +1,20 @@
 import { IGithubClient, RepositoryId } from '@bundler/github';
 import { ILogger } from '../common/types';
-import { DockerKind } from '../processes/types';
+
+export interface RepositoryTask {
+  id: string;
+  kind: TaskKind;
+  archivedPath: string;
+}
+
+export type TaskKind = 'Dockerfile' | 'migrations.Dockerfile' | 'helm';
 
 export interface Repository {
   id: RepositoryId;
   buildImageLocally?: boolean;
   includeMigrations?: boolean;
   includeAssets?: boolean;
+  includeHelmPackage?: boolean;
 }
 
 export interface RepositoryProfile extends Repository {
@@ -14,7 +22,8 @@ export interface RepositoryProfile extends Repository {
   archive: BundlePath;
   extraction: BundlePath;
   assets?: BundlePath;
-  dockerfiles: { id: string; archivedPath: string; kind?: DockerKind }[];
+  tasks: RepositoryTask[];
+  completed: number;
 }
 
 export interface BundlePath {

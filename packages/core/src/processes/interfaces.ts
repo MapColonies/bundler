@@ -24,3 +24,9 @@ export interface DockerSaveArgs {
   path: string;
   registry?: string;
 }
+
+export interface HelmPackageArgs {
+  packageId: string;
+  path: string;
+  destination: string;
+}

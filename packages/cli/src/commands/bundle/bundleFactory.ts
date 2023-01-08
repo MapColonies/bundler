@@ -17,6 +17,7 @@ interface BundleRequest {
   buildImageLocally: boolean;
   includeMigrations: boolean;
   includeAssets: boolean;
+  includeHelmPackage: boolean;
 }
 
 export type BundleArguments = GlobalArguments & Required<Omit<BundlerOptions, 'logger' | 'githubClient'> & BundleRequest>;
@@ -70,6 +71,13 @@ export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments
         type: 'boolean',
         default: false,
       })
+      .option('includeHelmPackage', {
+        alias: ['hp', 'include-helm-package'],
+        describe: 'include the packages helm chart of given repository',
+        nargs: 1,
+        type: 'boolean',
+        default: false,
+      })
       .option('repository', { alias: 'repo', describe: 'the repository to bundle', nargs: 1, type: 'string', conflicts: ['repositories'] })
       .option('repositories', { alias: 'repos', describe: 'the repositories to bundle', array: true, type: 'string', conflicts: ['repository'] })
       .check(checkWrapper(repoProvidedCheck, logger))
@@ -80,15 +88,26 @@ export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments
   };
 
   const handler = async (args: Arguments<BundleArguments>): Promise<void> => {
-    const { workdir, outputPath, cleanupMode, isDebugMode, verbose, repositories, repository, buildImageLocally, includeMigrations, includeAssets } =
-      args;
+    const {
+      workdir,
+      outputPath,
+      cleanupMode,
+      isDebugMode,
+      verbose,
+      repositories,
+      repository,
+      buildImageLocally,
+      includeMigrations,
+      includeAssets,
+      includeHelmPackage,
+    } = args;
 
     const githubClient = dependencyContainer.resolve<IGithubClient>(SERVICES.GITHUB_CLIENT);
 
     const bundler = new Bundler({ workdir, outputPath, cleanupMode, isDebugMode, verbose, logger, githubClient });
 
     const reposInput = (repository as RepositoryId | undefined) ? [repository] : repositories;
-    const bundleRequest = reposInput.map((repoId) => ({ id: repoId, buildImageLocally, includeMigrations, includeAssets }));
+    const bundleRequest = reposInput.map((repoId) => ({ id: repoId, buildImageLocally, includeMigrations, includeAssets, includeHelmPackage }));
 
     logger.debug({ msg: 'executing command', command, args: { workdir, outputPath, cleanupMode, isDebugMode, verbose }, payload: bundleRequest });
 

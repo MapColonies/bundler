@@ -2,7 +2,7 @@ import { FactoryFunction } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
 import { IGithubClient } from '@bundler/github';
 import { CommandModule } from 'yargs';
-import { dockerVersion } from '@bundler/core';
+import { dockerVerify, helmVerify } from '@bundler/core';
 import { GlobalArguments } from '../../cliBuilderFactory';
 import { ExitCodes, EXIT_CODE, SERVICES } from '../../common/constants';
 import { command, describe } from './constants';
@@ -28,7 +28,11 @@ export const verifyCommandFactory: FactoryFunction<CommandModule<GlobalArguments
         },
         {
           name: 'docker',
-          verification: dockerVersion(),
+          verification: dockerVerify(),
+        },
+        {
+          name: 'helm',
+          verification: helmVerify(),
         },
       ];
 

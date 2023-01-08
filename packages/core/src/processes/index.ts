@@ -1,7 +1,7 @@
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import { PassThrough } from 'stream';
 import * as readline from 'readline';
-import { ILogger, LogFn } from '../common/types';
+import { ILogger } from '../common/types';
 
 interface ChildProcessResult {
   stdout: string;
