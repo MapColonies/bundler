@@ -66,6 +66,9 @@ export class GithubClient implements IGithubClient {
   }
 
   public async ping(): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+
     await this._octokit.rest.orgs.get({
       org: GITHUB_ORG,
     });

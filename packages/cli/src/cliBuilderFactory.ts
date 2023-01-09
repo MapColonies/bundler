@@ -15,6 +15,7 @@ export const cliBuilderFactory: FactoryFunction<Argv> = (dependencyContainer) =>
     .env()
     .usage('Usage: $0 <command> [options]')
     .demandCommand(1, 'please provide a command')
+    .recommendCommands()
     .option('verbose', { alias: 'v', describe: 'cli verbosity', nargs: 1, type: 'boolean', default: false })
     .option('token', { alias: 'tkn', describe: 'github access token', nargs: 1, type: 'string' })
     .help('h')
@@ -24,6 +25,7 @@ export const cliBuilderFactory: FactoryFunction<Argv> = (dependencyContainer) =>
   args.command(dependencyContainer.resolve<CommandModule>(BUNDLE_COMMAND_FACTORY));
   args.command(dependencyContainer.resolve<CommandModule>(LIST_COMMAND_FACTORY));
   args.command(dependencyContainer.resolve<CommandModule>(VERIFY_COMMAND_FACTORY));
+  args.wrap(args.terminalWidth());
 
   return args;
 };
