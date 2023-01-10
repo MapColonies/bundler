@@ -1,12 +1,11 @@
 /* eslint-disable @typescript-eslint/no-magic-numbers */
+import { EOL } from 'os';
 import * as readline from 'readline';
 import { FactoryFunction } from 'tsyringe';
-import wcwidth from 'wcwidth';
 import { Logger } from '@map-colonies/js-logger';
 import { IGithubClient } from '@bundler/github';
 import { CommandModule } from 'yargs';
 import { dots as spinner } from 'cli-spinners';
-import stripAnsi from 'strip-ansi';
 import columnify, { GlobalOptions } from 'columnify';
 import chalk from 'chalk';
 import { dockerVerify, helmVerify } from '@bundler/core';
@@ -43,49 +42,46 @@ interface VerifyResult {
   reason?: Error;
 }
 
-let lastContent = '';
+let lastNumOfLines = 0;
 
-const getLineCount = (text = lastContent): number => {
-  const columns = process.stderr.columns || 80;
+const clearStream = (): void => {
+  for (let index = 0; index < lastNumOfLines; index++) {
+    readline.moveCursor(process.stderr, 0, -1);
+    readline.clearLine(process.stderr, 1);
+  }
+};
 
-  let lineCount = 0;
-  for (const line of stripAnsi(' '.repeat(10) + text).split('\n')) {
-    lineCount += Math.max(1, Math.ceil(wcwidth(line) / columns));
+const renderLines = (lines: string[]): void => {
+  for (const line of lines) {
+    if (line === '') {
+      process.stderr.write(' ' + EOL);
+    } else {
+      process.stderr.write(line + EOL);
+    }
   }
 
-  return lineCount;
+  lastNumOfLines = lines.length;
 };
 
 const indent = (content: string, amount = 0): string => {
   const indentation = ' '.repeat(Math.max(0, amount));
   return content
-    .split('\n')
+    .split(EOL)
     .map((line) => `${indentation}${line}`)
-    .join('\n');
+    .join(EOL);
 };
 
 const print = (content: string): void => {
-  readline.cursorTo(process.stderr, 0);
-
-  const linesToClear = getLineCount();
-
-  for (let index = 0; index < linesToClear; index++) {
-    if (index > 0) {
-      readline.moveCursor(process.stderr, 0, -1);
-    }
-
-    readline.clearLine(process.stderr, 1);
-  }
-
-  readline.cursorTo(process.stderr, 0);
-
-  lastContent = content;
-  process.stderr.write(content);
+  clearStream();
+  renderLines(content.split(EOL));
 };
 
 const columnifyOptions: GlobalOptions = {
   align: 'left',
+  preserveNewLines: true,
   columns: ['name', 'verified', 'reason'],
+  showHeaders: false,
+  columnSplitter: '   ',
   config: { verified: { align: 'center' }, reason: { maxWidth: 80 } },
 };
 
@@ -121,8 +117,8 @@ export const verifyCommandFactory: FactoryFunction<CommandModule<GlobalArguments
       setInterval(() => {
         const { frames } = spinner;
         results.filter((entity) => entity.status === Status.PENDING).forEach((entity) => (entity.verified = frames[++i % frames.length]));
-        print(`${indent('prefix\n', 0)}${indent(`${columnify(results, { ...columnifyOptions })}'\n`, 4)}`);
-      }, spinner.interval * 2);
+        print(`${indent(`${EOL}prefix${EOL}${EOL}`, 0)}${indent(`${columnify(results, { ...columnifyOptions })}'`, 4)}`);
+      }, spinner.interval);
 
       await Promise.allSettled(
         entities.map(async (entity, index) => {
@@ -137,7 +133,7 @@ export const verifyCommandFactory: FactoryFunction<CommandModule<GlobalArguments
       );
 
       const result = results.every((entity) => entity.status === Status.SUCCESS) ? VERIFIED_RESULT : NOT_VERIFIED_RESULT;
-      print(`${indent('prefix\n', 0)}${indent(`${columnify(results, { ...columnifyOptions })}\n`, 4)}${indent(result, 4)}`);
+      print(`${indent(`${EOL}prefix${EOL}${EOL}`, 0)}${indent(`${columnify(results, { ...columnifyOptions })}`, 4)}${indent(`${EOL}${EOL}${result}`, 4)}`);
 
       dependencyContainer.register(EXIT_CODE, { useValue: ExitCodes.SUCCESS });
     } catch (error) {
