@@ -24,6 +24,7 @@ import {
   HTTP_CLIENT_TIMEOUT,
   HELM_DIR,
 } from './constants';
+import { BundleStatus, Status } from './status';
 
 const stringifyRepositoryId = (id: RepositoryId): string => {
   return `${id.owner ?? GITHUB_ORG}-${id.name}-${id.ref ?? DEFAULT_BRANCH}`;
@@ -50,6 +51,24 @@ export class Bundler {
 
     this.commander.on('buildCompleted', this.onBuildCompleted.bind(this));
     this.commander.on('pullCompleted', this.onPullCompleted.bind(this));
+  }
+
+  public get status(): BundleStatus {
+    const repos = this.repositoryProfiles.map((repoProfile) => {
+      const name = stringifyRepositoryId(repoProfile.id);
+      const images = repoProfile.tasks
+        .filter((task) => task.kind === DOCKER_FILE || task.kind === MIGRATIONS_DOCKER_FILE)
+        .map((task) => ({ name: task.name, status: task.status, content: task.description }));
+
+      const packages = repoProfile.tasks
+        .filter((task) => task.kind === 'helm')
+        .map((task) => ({ name: task.name, status: task.status, content: task.description }));
+
+      const status = repoProfile.tasks.every((t) => t.status === Status.SUCCESS) ? Status.SUCCESS : Status.PENDING;
+      return { name, images, packages, status };
+    });
+
+    return { repositories: repos, status: Status.PENDING };
   }
 
   private get allTasksCompleted(): boolean {
@@ -188,7 +207,13 @@ export class Bundler {
       await tar.list({
         file: repo.archive.path,
         filter: (path) => (lookup as string[]).includes(basename(path)),
-        onentry: (entry) => repo.tasks.push({ id: nanoid(), archivedPath: entry.path, kind: basename(entry.path) as TaskKind }),
+        onentry: (entry) => {
+          const kind  = basename(entry.path) as TaskKind;
+          const tag = repo.id.ref ?? 'latest';
+          const name = kind === MIGRATIONS_DOCKER_FILE ? `${repo.id.name}-migrations` : repo.id.name;
+          const description = repo.buildImageLocally === true ? '[building]' : '[pulling]';
+          return repo.tasks.push({ id: nanoid(), name: `${name}:${tag}`, archivedPath: entry.path, kind, status: Status.PENDING, description });
+        }
       });
 
       if (repo.tasks.length > 0) {
@@ -283,6 +308,11 @@ export class Bundler {
     this.logger?.info({ bundleId: this.bundleId, msg: 'buildCompleted', image });
 
     const repo = this.taskIdToRepositoryLookup(image.id);
+    const index = repo.tasks.findIndex((task) => task.id === image.id);
+    if (index !== -1) {
+      repo.tasks[index] = { ...repo.tasks[index], description: '[saving]' };
+    }
+
 
     await this.commander.save({ image, path: join(repo.workdir.path, IMAGES_DIR, `${image.name}-${image.tag}.${TAR_FORMAT}`) });
   }
@@ -291,6 +321,11 @@ export class Bundler {
     this.logger?.info({ bundleId: this.bundleId, msg: 'pullCompleted', image });
 
     const repo = this.taskIdToRepositoryLookup(image.id);
+    const index = repo.tasks.findIndex((task) => task.id === image.id);
+    if (index !== -1) {
+      repo.tasks[index] = { ...repo.tasks[index], description: '[saving]' };
+    }
+
 
     const args: DockerSaveArgs = { image, path: join(repo.workdir.path, IMAGES_DIR, `${image.name}-${image.tag}.${TAR_FORMAT}`) };
 
@@ -306,6 +341,10 @@ export class Bundler {
     this.logger?.info({ bundleId: this.bundleId, msg: 'packageCompleted', packageId });
 
     const repo = this.taskIdToRepositoryLookup(packageId);
+    const index = repo.tasks.findIndex((task) => task.id === packageId);
+    if (index !== -1) {
+      repo.tasks[index] = { ...repo.tasks[index], status: Status.SUCCESS, description: '[done]' };
+    }
     repo.completed++;
 
     if (this.config.cleanupMode === 'on-the-fly' && repo.completed === repo.tasks.length) {
@@ -319,6 +358,11 @@ export class Bundler {
     this.logger?.info({ bundleId: this.bundleId, msg: 'saveCompleted', image });
 
     const repo = this.taskIdToRepositoryLookup(image.id);
+    const index = repo.tasks.findIndex((task) => task.id === image.id);
+    if (index !== -1) {
+      repo.tasks[index] = { ...repo.tasks[index], status: Status.SUCCESS, description: '[done]' };
+    }
+
     repo.completed++;
 
     if (this.config.cleanupMode === 'on-the-fly' && repo.completed === repo.tasks.length) {

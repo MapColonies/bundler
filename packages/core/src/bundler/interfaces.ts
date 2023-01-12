@@ -1,10 +1,14 @@
 import { IGithubClient, RepositoryId } from '@bundler/github';
 import { ILogger } from '../common/types';
+import { Status } from './status';
 
 export interface RepositoryTask {
   id: string;
   kind: TaskKind;
   archivedPath: string;
+  status: Status;
+  name: string;
+  description?: string;
 }
 
 export type TaskKind = 'Dockerfile' | 'migrations.Dockerfile' | 'helm';

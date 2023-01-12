@@ -1,15 +1,18 @@
+import { EOL } from 'os';
 import { Bundler, BundlerOptions, CleanupMode } from '@bundler/core';
 import { IGithubClient, RepositoryId } from '@bundler/github';
 import { FactoryFunction } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
 import { Arguments, Argv, CommandModule } from 'yargs';
-import { ExitCodes, EXIT_CODE, SERVICES } from '../../common/constants';
+import { ExitCodes, EXIT_CODE, SERVICES, Status } from '../../common/constants';
 import { GlobalArguments } from '../../cliBuilderFactory';
 import { checkWrapper } from '../../wrappers/check';
 import { coerceWrapper } from '../../wrappers/coerce';
+import { Content, ExtendedColumnifyOptions, styleFunc } from '../../ui/styler';
+import { createTerminalStreamer } from '../../ui/terminalStreamer';
 import { repoProvidedCheck } from './checks';
 import { repositoriesCoerce, repositoryCoerce } from './coerces';
-import { command, describe } from './constants';
+import { command, describe, PREFIX } from './constants';
 
 interface BundleRequest {
   repository?: RepositoryId;
@@ -19,6 +22,14 @@ interface BundleRequest {
   includeAssets: boolean;
   includeHelmPackage: boolean;
 }
+
+const columnifyOptions: ExtendedColumnifyOptions = {
+  align: 'left',
+  preserveNewLines: true,
+  columns: ['content', 'name', 'description'],
+  showHeaders: false,
+  columnSplitter: '   ',
+};
 
 export type BundleArguments = GlobalArguments & Required<Omit<BundlerOptions, 'logger' | 'githubClient'> & BundleRequest>;
 
@@ -104,7 +115,7 @@ export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments
 
     const githubClient = dependencyContainer.resolve<IGithubClient>(SERVICES.GITHUB_CLIENT);
 
-    const bundler = new Bundler({ workdir, outputPath, cleanupMode, isDebugMode, verbose, logger, githubClient });
+    const bundler = new Bundler({ workdir, outputPath, cleanupMode, isDebugMode, verbose, githubClient });
 
     const reposInput = (repository as RepositoryId | undefined) ? [repository] : repositories;
     const bundleRequest = reposInput.map((repoId) => ({ id: repoId, buildImageLocally, includeMigrations, includeAssets, includeHelmPackage }));
@@ -112,6 +123,52 @@ export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments
     logger.debug({ msg: 'executing command', command, args: { workdir, outputPath, cleanupMode, isDebugMode, verbose }, payload: bundleRequest });
 
     try {
+      const getData = (): string => {
+        const data = bundler.status;
+
+        const contents: Content[] = data.repositories.map((repo) => {
+          let imagesContent: Content | undefined = undefined;
+          if (repo.images && repo.images.length > 0) {
+            const successed = repo.images.filter((i) => i.status === Status.SUCCESS);
+            imagesContent = {
+              level: 6,
+              status: Status.PENDING,
+              content: `${EOL}Loading images: ${successed.length}/${repo.images.length} succeeded${EOL}`,
+              subContent: {
+                level: 9,
+                status: Status.PENDING,
+                content: {
+                  data: repo.images.map((i) => ({ name: i.name, status: i.status, description: i.content })),
+                  config: columnifyOptions,
+                },
+              }
+            }
+          }
+          let packagesContent: Content | undefined = undefined;
+          if (repo.packages && repo.packages.length > 0) {
+            const successed = repo.packages.filter((i) => i.status === Status.SUCCESS);
+            const status = successed.length === repo.packages.length ? Status.SUCCESS : Status.PENDING;
+            const data = [{ name: 'Packaging helms', status }];
+            packagesContent = {
+              level: 6,
+              status: status,
+              content: { data, config: columnifyOptions },
+              subContent: imagesContent,
+            }
+          }
+            return {
+              level: 3,
+              content: { data: [{ name: repo.name, status: repo.status }], config: columnifyOptions },
+              subContent: packagesContent ?? imagesContent,
+              status: Status.PENDING,
+          };
+          });
+
+        return styleFunc({ prefix: { content: PREFIX(command), isBold: true, status: Status.PENDING }, main: contents });
+      };
+
+      createTerminalStreamer(process.stderr, getData);
+
       await bundler.bundle(bundleRequest);
 
       dependencyContainer.register(EXIT_CODE, { useValue: ExitCodes.SUCCESS });

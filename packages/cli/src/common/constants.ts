@@ -15,3 +15,14 @@ export const ExitCodes = {
   SUCCESS: 0,
   GENERAL_ERROR: 1,
 };
+
+export enum LifeCycle {
+  PRE = 'pre',
+  POST = 'post',
+}
+
+export enum Status {
+  SUCCESS = 'SUCCESS',
+  PENDING = 'PENDING',
+  FAILURE = 'FAILURE',
+}
