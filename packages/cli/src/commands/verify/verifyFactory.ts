@@ -9,7 +9,7 @@ import { GlobalArguments } from '../../cliBuilderFactory';
 import { ExitCodes, EXIT_CODE, LifeCycle, SERVICES, Status } from '../../common/constants';
 import { createTerminalStreamer } from '../../ui/terminalStreamer';
 import { ExtendedColumnifyOptions, styleFunc } from '../../ui/styler';
-import { command, describe, NOT_VERIFIED_RESULT, PREFIX, VERIFIED_RESULT } from './constants';
+import { command, describe, NOT_VERIFIED_MESSAGE, PREFIX, VERIFIED_MESSAGE } from './constants';
 
 const promiseResult = async <T>(promise: Promise<T>): Promise<[undefined, T] | [unknown, undefined]> => {
   try {
@@ -28,7 +28,7 @@ interface VerifyEntity {
 const columnifyOptions: ExtendedColumnifyOptions = {
   align: 'left',
   preserveNewLines: true,
-  columns: ['name', 'content', 'reason'],
+  columns: ['content', 'name', 'reason'],
   showHeaders: false,
   columnSplitter: '   ',
   config: { content: { align: 'center' }, reason: { maxWidth: 80 } },
@@ -74,16 +74,16 @@ export const verifyCommandFactory: FactoryFunction<CommandModule<GlobalArguments
 
       const getData = (): string => {
         if (cycle === LifeCycle.PRE) {
-          const main = [{ level: 4, status: Status.PENDING, content: { data: results, config: columnifyOptions } }];
+          const main = [{ level: 3, status: Status.PENDING, content: { data: results, config: columnifyOptions } }];
           return styleFunc({ prefix: { content: PREFIX(command), isBold: true, status: Status.PENDING }, main });
         }
         const status = results.every((entity) => entity.status === Status.SUCCESS) ? Status.SUCCESS : Status.FAILURE;
 
-        const main = [{ level: 4, status, content: { data: results, config: columnifyOptions } }];
-        const result = status === Status.SUCCESS ? VERIFIED_RESULT : NOT_VERIFIED_RESULT;
+        const main = [{ level: 3, status, content: { data: results, config: columnifyOptions } }];
+        const message = status === Status.SUCCESS ? VERIFIED_MESSAGE : NOT_VERIFIED_MESSAGE;
         return styleFunc({
           prefix: { content: PREFIX(command), isBold: true, status },
-          suffix: { content: result, level: 4, isBold: true },
+          suffix: { content: message, level: 3, isBold: true, status },
           main,
         });
       };

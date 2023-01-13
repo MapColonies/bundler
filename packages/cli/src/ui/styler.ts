@@ -19,34 +19,31 @@ interface Statused {
 }
 
 interface Styled {
+  isBold?: boolean;
+  isDim?: boolean;
   level?: number;
   status?: Status;
 }
 
 interface StringedContent extends Styled {
-  status: Status
+  status: Status;
   content?: string;
   subContent?: Content;
 }
 
 interface ColumnedContent<T extends Statused> extends Styled {
-  status: Status
+  status: Status;
   content: { config: ExtendedColumnifyOptions; data: T[] };
   subContent?: Content;
 }
 
-interface Title extends Styled {
-  isBold?: boolean;
-  content: string;
-}
-
 const statusToChalkMap: Record<Status, ChalkFunction> = {
-  [Status.SUCCESS]: chalk.bgGreen,
-  [Status.PENDING]: chalk.bgCyan,
-  [Status.FAILURE]: chalk.bgRed,
+  [Status.SUCCESS]: chalk.inverse.green,
+  [Status.PENDING]: chalk.inverse.cyan,
+  [Status.FAILURE]: chalk.inverse.red,
 };
 
-const statusToFigureMap = (status: Status): string => {
+const statusToMarkMap = (status: Status): string => {
   switch (status) {
     case Status.SUCCESS:
       return chalk.green('✔');
@@ -55,7 +52,7 @@ const statusToFigureMap = (status: Status): string => {
     case Status.FAILURE:
       return chalk.red('✘');
   }
-}
+};
 const indent = (content: string, amount = 0): string => {
   const indentation = PADDING.repeat(Math.max(0, amount));
   return content
@@ -66,13 +63,13 @@ const indent = (content: string, amount = 0): string => {
 
 interface StyleResult {
   prefix?: string;
-  suffix?: string;
   main?: string;
+  suffix?: string;
 }
 
 const styleResultToString = (result: StyleResult): string => {
   const { prefix, main, suffix } = result;
-  return `${prefix !== undefined ? `${EOL}${prefix}${EOL}${EOL}` : ''}${main ?? ''}${suffix !== undefined ? `${EOL}${EOL}${suffix}` : ''}`;
+  return `${prefix !== undefined ? `${EOL}${prefix}${EOL}` : ''}${main ?? ''}${suffix !== undefined ? `${EOL}${suffix}` : ''}`;
 };
 
 function* styleContent(current?: Content): Generator<string> {
@@ -80,33 +77,45 @@ function* styleContent(current?: Content): Generator<string> {
     return;
   }
 
-  const { content, status, level } = current;
+  const { content, status, level, isBold, isDim } = current;
+
+  let strigifiedContent = '';
 
   if (typeof content === 'undefined') {
-    yield `${EOL}${indent(statusToFigureMap(status), level)}`
+    strigifiedContent = `${statusToMarkMap(status)}`;
   } else if (typeof content === 'string') {
-    yield `${EOL}${indent(content, level)}`;
+    strigifiedContent = content;
   } else {
     const { config, data } = content;
-    data
-      .forEach((d) => {
-        d.content = statusToFigureMap(d.status);
-      });
+    data.forEach((d) => {
+      d.content = statusToMarkMap(d.status);
+    });
     const { alternateChalks } = config;
 
-    // TODO: improve
-    const temp = indent(columnify(data, config), level);
+    strigifiedContent = columnify(data, config);
     if (alternateChalks) {
-      yield temp
+      strigifiedContent = strigifiedContent
         .split(EOL)
         .map((line, index) => alternateChalks[index % alternateChalks.length](line))
         .join(EOL);
-    } else {
-      yield `${EOL}${temp}`;
     }
   }
 
+  if (isBold === true) {
+    strigifiedContent = chalk.bold(strigifiedContent);
+  }
+
+  if (isDim === true) {
+    strigifiedContent = chalk.dim(strigifiedContent);
+  }
+
+  yield `${EOL}${indent(strigifiedContent, level)}`;
+
   yield* styleContent(current.subContent);
+}
+
+export interface Title extends Styled {
+  content: string;
 }
 
 export type Content = ColumnedContent<Statused> | StringedContent;
@@ -125,11 +134,11 @@ export interface StyleRequest {
 export const styleFunc = (request: StyleRequest): string => {
   const { prefix, suffix, main } = request;
 
-  const result: { prefix?: string; suffix?: string; main?: string } = {};
+  const result: { prefix?: string; suffix?: string; main?: string } = { main: '' };
 
   [prefix, suffix].forEach((title) => {
     if (title) {
-      const { level, isBold, status } = title;
+      const { level, isBold, status, isDim } = title;
       let { content } = title;
 
       if (status) {
@@ -138,6 +147,10 @@ export const styleFunc = (request: StyleRequest): string => {
 
       if (isBold === true) {
         content = chalk.bold(content);
+      }
+
+      if (isDim === true) {
+        content = chalk.dim(content);
       }
 
       content = indent(content, level);

@@ -8,11 +8,12 @@ import { ExitCodes, EXIT_CODE, SERVICES, Status } from '../../common/constants';
 import { GlobalArguments } from '../../cliBuilderFactory';
 import { checkWrapper } from '../../wrappers/check';
 import { coerceWrapper } from '../../wrappers/coerce';
-import { Content, ExtendedColumnifyOptions, styleFunc } from '../../ui/styler';
+import { Content, ExtendedColumnifyOptions, styleFunc, Title } from '../../ui/styler';
 import { createTerminalStreamer } from '../../ui/terminalStreamer';
 import { repoProvidedCheck } from './checks';
 import { repositoriesCoerce, repositoryCoerce } from './coerces';
-import { command, describe, PREFIX } from './constants';
+import { BUNDLE_FAILED_MESSAGE, BUNDLE_SUCCESS_MESSAGE, command, describe, PREFIX } from './constants';
+import { TaskStage } from '@bundler/core/dist/bundler/interfaces';
 
 interface BundleRequest {
   repository?: RepositoryId;
@@ -126,45 +127,92 @@ export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments
       const getData = (): string => {
         const data = bundler.status;
 
+        const executingContent = {
+          isDim: true,
+          content: `>   Executing tasks: ${data.tasksCompleted}/${data.tasksTotal} succeeded`,
+          status: data.status,
+          level: 3,
+        };
+        const archivingContent = {
+          isDim: true,
+          content: { data: [{ name: `Archiving bundle`, status: data.status }], config: columnifyOptions },
+          status: data.status,
+          level: 3,
+        };
+
         const contents: Content[] = data.repositories.map((repo) => {
           let imagesContent: Content | undefined = undefined;
-          if (repo.images && repo.images.length > 0) {
-            const successed = repo.images.filter((i) => i.status === Status.SUCCESS);
+
+          const images = repo.tasks.filter((t) => t.kind === 'Dockerfile' || t.kind === 'migrations.Dockerfile');
+          if (images.length > 0) {
+            const successed = images.filter((i) => i.status === Status.SUCCESS);
+            const status = successed.length === images.length ? Status.SUCCESS : Status.PENDING;
             imagesContent = {
               level: 6,
-              status: Status.PENDING,
-              content: `${EOL}Loading images: ${successed.length}/${repo.images.length} succeeded${EOL}`,
+              status,
+              content: `${EOL}>   Loading images: ${successed.length}/${images.length} succeeded${EOL}`,
+              isDim: true,
               subContent: {
                 level: 9,
-                status: Status.PENDING,
+                status,
                 content: {
-                  data: repo.images.map((i) => ({ name: i.name, status: i.status, description: i.content })),
+                  data: images.map((i) => ({ name: i.name, status: i.status, description: i.content !== undefined ? `[${i.content}]` : undefined })),
                   config: columnifyOptions,
                 },
-              }
-            }
+              },
+            };
           }
-          let packagesContent: Content | undefined = undefined;
-          if (repo.packages && repo.packages.length > 0) {
-            const successed = repo.packages.filter((i) => i.status === Status.SUCCESS);
-            const status = successed.length === repo.packages.length ? Status.SUCCESS : Status.PENDING;
-            const data = [{ name: 'Packaging helms', status }];
-            packagesContent = {
+
+          let assetsContent: Content | undefined = undefined;
+
+          const assets = repo.tasks.filter((t) => t.kind === 'asset');
+          if (assets.length > 0) {
+            const successed = assets.filter((i) => i.status === Status.SUCCESS);
+            const status = successed.length === assets.length ? Status.SUCCESS : Status.PENDING;
+            const data = [{ name: `Getting assets: ${successed.length}/${assets.length} succeeded`, status }];
+            assetsContent = {
               level: 6,
               status: status,
               content: { data, config: columnifyOptions },
               subContent: imagesContent,
-            }
+            };
           }
-            return {
-              level: 3,
-              content: { data: [{ name: repo.name, status: repo.status }], config: columnifyOptions },
-              subContent: packagesContent ?? imagesContent,
-              status: Status.PENDING,
-          };
-          });
 
-        return styleFunc({ prefix: { content: PREFIX(command), isBold: true, status: Status.PENDING }, main: contents });
+          let packagesContent: Content | undefined = undefined;
+
+          const packages = repo.tasks.filter((t) => t.kind === 'helm');
+          if (packages.length > 0) {
+            const successed = packages.filter((i) => i.status === Status.SUCCESS);
+            const status = successed.length === packages.length ? Status.SUCCESS : Status.PENDING;
+            const data = [{ name: `Packaging helms: ${successed.length}/${packages.length} succeeded`, status }];
+            packagesContent = {
+              level: 6,
+              status: status,
+              content: { data, config: columnifyOptions },
+              subContent: assetsContent ?? imagesContent,
+            };
+          }
+
+          return {
+            level: 3,
+            content: { data: [{ name: repo.name, status: repo.status }], config: columnifyOptions },
+            subContent: packagesContent ?? assetsContent ?? imagesContent,
+            status: data.status,
+          };
+        });
+
+        let suffix: Title | undefined = undefined;
+        if (data.status === Status.SUCCESS) {
+          suffix = { isBold: true, content: BUNDLE_SUCCESS_MESSAGE(data.output), status: data.status, level: 3 };
+        } else if (data.status === Status.FAILURE) {
+          suffix = { isBold: true, content: BUNDLE_FAILED_MESSAGE, status: data.status, level: 3 };
+        }
+
+        return styleFunc({
+          prefix: { content: PREFIX(command), isBold: true, status: data.status },
+          main: [data.allTasksCompleted ? archivingContent : executingContent, ...contents],
+          suffix,
+        });
       };
 
       createTerminalStreamer(process.stderr, getData);

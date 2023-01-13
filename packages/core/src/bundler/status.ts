@@ -1,3 +1,5 @@
+import { TaskKind } from './interfaces';
+
 // TODO: common
 interface Statused {
   status: Status;
@@ -11,17 +13,20 @@ export enum Status {
   FAILURE = 'FAILURE',
 }
 
-export interface EntityStatus extends Statused {
+export interface TaskStatus extends Statused {
   name: string;
+  kind: TaskKind;
 }
 
 export interface RepositoryStatus extends Statused {
   name: string;
-  images?: EntityStatus[];
-  packages?: EntityStatus[];
-  assets?: EntityStatus[];
+  tasks: TaskStatus[];
 }
 
 export interface BundleStatus extends Statused {
   repositories: RepositoryStatus[];
+  tasksCompleted: number;
+  tasksTotal: number;
+  allTasksCompleted: boolean;
+  output: string;
 }

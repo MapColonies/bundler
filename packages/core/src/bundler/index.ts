@@ -1,14 +1,13 @@
 import { mkdir, rm } from 'fs/promises';
 import { basename, dirname, join } from 'path';
 import { nanoid } from 'nanoid';
-import axios, { AxiosInstance } from 'axios';
 import { RepositoryId, IGithubClient, GithubClient } from '@bundler/github';
 import * as tar from 'tar';
 import { writeBuffer } from '../fs';
 import { Commander } from '../processes/commander';
 import { DockerSaveArgs, Image } from '../processes/interfaces';
 import { ILogger } from '../common/types';
-import { BundlerOptions, BundlePath, Repository, RepositoryProfile, TaskKind } from './interfaces';
+import { BundlerOptions, BundlePath, Repository, RepositoryProfile, TaskKind, RepositoryTask, TaskStage } from './interfaces';
 import {
   DEFAULT_BRANCH,
   DOCKER_FILE,
@@ -21,10 +20,11 @@ import {
   GITHUB_ORG,
   SOURCE_CODE_ARCHIVE,
   ASSETS_DIR,
-  HTTP_CLIENT_TIMEOUT,
   HELM_DIR,
 } from './constants';
 import { BundleStatus, Status } from './status';
+
+const NOT_FOUND_INDEX = -1;
 
 const stringifyRepositoryId = (id: RepositoryId): string => {
   return `${id.owner ?? GITHUB_ORG}-${id.name}-${id.ref ?? DEFAULT_BRANCH}`;
@@ -33,20 +33,21 @@ const stringifyRepositoryId = (id: RepositoryId): string => {
 export class Bundler {
   private readonly logger: ILogger | undefined;
   private readonly githubClient: IGithubClient;
-  private readonly axiosClient: AxiosInstance;
   private readonly commander: Commander;
 
-  private bundleId: string = nanoid();
-  private repositoryProfiles: RepositoryProfile[] = [];
+  private readonly bundleId: string = nanoid();
+  private readonly repositoryProfiles: RepositoryProfile[] = [];
   private tasksTotal = 0;
   private tasksCompleted = 0;
+  private statusRes: Status = Status.PENDING;
+  private statusCache: BundleStatus | undefined;
+  private eventOccurred = false;
 
   // TODO generic docker worker and github interface
   // TODO: handle verbosity and logging including for commands
   public constructor(private readonly config: BundlerOptions = DEFAULT_OPTIONS) {
     this.logger = config.logger;
     this.githubClient = config.githubClient ?? new GithubClient();
-    this.axiosClient = axios.create({ timeout: HTTP_CLIENT_TIMEOUT });
     this.commander = new Commander({ verbose: config.verbose, logger: this.logger });
 
     this.commander.on('buildCompleted', this.onBuildCompleted.bind(this));
@@ -54,31 +55,36 @@ export class Bundler {
   }
 
   public get status(): BundleStatus {
+    if (!this.eventOccurred && this.statusCache !== undefined) {
+      return this.statusCache;
+    }
+
     const repos = this.repositoryProfiles.map((repoProfile) => {
       const name = stringifyRepositoryId(repoProfile.id);
-      const images = repoProfile.tasks
-        .filter((task) => task.kind === DOCKER_FILE || task.kind === MIGRATIONS_DOCKER_FILE)
-        .map((task) => ({ name: task.name, status: task.status, content: task.description }));
-
-      const packages = repoProfile.tasks
-        .filter((task) => task.kind === 'helm')
-        .map((task) => ({ name: task.name, status: task.status, content: task.description }));
-
-      const status = repoProfile.tasks.every((t) => t.status === Status.SUCCESS) ? Status.SUCCESS : Status.PENDING;
-      return { name, images, packages, status };
+      const tasks = repoProfile.tasks.map((task) => ({ name: task.name, status: task.status, kind: task.kind, content: task.stage }));
+      const repoStatus = repoProfile.profiled && repoProfile.tasks.every((t) => t.status === Status.SUCCESS) ? Status.SUCCESS : Status.PENDING;
+      return { name, tasks, status: repoStatus };
     });
 
-    return { repositories: repos, status: Status.PENDING };
+    this.statusCache = {
+      repositories: repos,
+      allTasksCompleted: this.allTasksCompleted,
+      output: this.config.outputPath,
+      status: this.statusRes,
+      tasksCompleted: this.tasksCompleted,
+      tasksTotal: this.tasksTotal,
+    };
+    this.eventOccurred = false;
+
+    return this.statusCache;
   }
 
   private get allTasksCompleted(): boolean {
-    return this.tasksCompleted === this.tasksTotal;
+    return this.tasksCompleted === this.tasksTotal && this.repositoryProfiles.every(p => p.profiled);
   }
 
   // TODO: bundle name as arg
   public async bundle(repositories: Repository[]): Promise<void> {
-    this.reset();
-
     this.repositoryProfiles.push(...repositories.map((repo) => this.determineBaseRepositoryProfile(repo)));
 
     await this.download();
@@ -104,6 +110,13 @@ export class Bundler {
         }
       });
 
+      this.commander.on('downloadCompleted', async (downloadId) => {
+        this.onDownloadCompleted(downloadId);
+        if (this.allTasksCompleted) {
+          resolve(await this.createOutput());
+        }
+      });
+
       this.commander.once('commandFailed', async (failedObj, error, message) => {
         await this.onCommandFailed(failedObj, error, message);
         reject(error);
@@ -111,13 +124,6 @@ export class Bundler {
     });
 
     await Promise.all([...commands, promisifyTasksChain]);
-  }
-
-  private reset(): void {
-    this.bundleId = nanoid();
-    this.repositoryProfiles = [];
-    this.tasksTotal = 0;
-    this.tasksCompleted = 0;
   }
 
   private determineBaseRepositoryProfile(repository: Repository): RepositoryProfile {
@@ -141,6 +147,8 @@ export class Bundler {
       assetsDir = { path: join(repoWorkdir.path, ASSETS_DIR), shouldMake: true, shouldRemove: false };
     }
 
+    this.eventOccurred = true;
+
     return {
       ...repository,
       id: { ...repository.id, name: repository.id.name.toLowerCase() },
@@ -150,6 +158,7 @@ export class Bundler {
       assets: assetsDir,
       tasks: [],
       completed: 0,
+      profiled: false,
     };
   }
 
@@ -164,32 +173,7 @@ export class Bundler {
       await writeBuffer(arrayBuffer, repo.archive.path);
     });
 
-    const assetsPromises = this.repositoryProfiles.map(async (repo) => {
-      const repoId = { ...repo.id, owner: repo.id.owner ?? GITHUB_ORG, ref: repo.id.ref ?? DEFAULT_BRANCH };
-
-      if (repo.includeAssets === true) {
-        // TODO: dont throw if release not found
-        const assets = await this.githubClient.listAssets(repoId);
-
-        if (assets.length === 0) {
-          return Promise.resolve();
-        }
-
-        await mkdir((repo.assets as BundlePath).path, { recursive: true });
-
-        const singleRepoAssets = assets.map(async (asset) => {
-          const { name, browser_download_url: downloadUrl } = asset;
-
-          const buffer = await this.axiosClient.get<Buffer>(downloadUrl, { responseType: 'arraybuffer' });
-
-          await writeBuffer(buffer.data, join((repo.assets as BundlePath).path, name));
-        });
-
-        await Promise.all(singleRepoAssets);
-      }
-    });
-
-    await Promise.all([...archivePromises, ...assetsPromises]);
+    await Promise.all(archivePromises);
   }
 
   private async profileRepositories(): Promise<void> {
@@ -204,16 +188,36 @@ export class Bundler {
         lookup.push(MIGRATIONS_DOCKER_FILE);
       }
 
+      if (repo.includeAssets === true) {
+        const repoId = { ...repo.id, owner: repo.id.owner ?? GITHUB_ORG, ref: repo.id.ref ?? DEFAULT_BRANCH };
+        const assets = await this.githubClient.listAssets(repoId);
+        if (assets.length > 0) {
+          await mkdir((repo.assets as BundlePath).path, { recursive: true });
+          assets.map((asset) => {
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            const { name, browser_download_url } = asset;
+            return repo.tasks.push({
+              id: nanoid(),
+              archivedPath: browser_download_url,
+              name,
+              kind: 'asset',
+              status: Status.PENDING,
+              stage: TaskStage.DOWNLOADING,
+            });
+          });
+        }
+      }
+
       await tar.list({
         file: repo.archive.path,
         filter: (path) => (lookup as string[]).includes(basename(path)),
         onentry: (entry) => {
-          const kind  = basename(entry.path) as TaskKind;
+          const kind = basename(entry.path) as TaskKind;
           const tag = repo.id.ref ?? 'latest';
           const name = kind === MIGRATIONS_DOCKER_FILE ? `${repo.id.name}-migrations` : repo.id.name;
-          const description = repo.buildImageLocally === true ? '[building]' : '[pulling]';
-          return repo.tasks.push({ id: nanoid(), name: `${name}:${tag}`, archivedPath: entry.path, kind, status: Status.PENDING, description });
-        }
+          const stage = repo.buildImageLocally === true ? TaskStage.BUILDING : TaskStage.PULLING;
+          return repo.tasks.push({ id: nanoid(), name: `${name}:${tag}`, archivedPath: entry.path, kind, status: Status.PENDING, stage });
+        },
       });
 
       if (repo.tasks.length > 0) {
@@ -232,6 +236,9 @@ export class Bundler {
           await mkdir(join(repo.workdir.path, HELM_DIR));
         }
       }
+
+      repo.profiled = true;
+      this.eventOccurred = true;
     }
   }
 
@@ -263,12 +270,20 @@ export class Bundler {
 
             commands.push(this.commander.pull(dockerPullArgs));
           }
-        } else {
+        } else if (external.kind === 'helm') {
           commands.push(
             this.commander.package({
               packageId: external.id,
               path: join(repo.extraction.path, external.archivedPath),
               destination: join(repo.workdir.path, HELM_DIR),
+            })
+          );
+        } else {
+          commands.push(
+            this.commander.download({
+              id: external.id,
+              url: external.archivedPath,
+              destination: join((repo.assets as BundlePath).path, external.name),
             })
           );
         }
@@ -307,12 +322,9 @@ export class Bundler {
   private async onBuildCompleted(image: Image): Promise<void> {
     this.logger?.info({ bundleId: this.bundleId, msg: 'buildCompleted', image });
 
+    this.eventOccurred = true;
     const repo = this.taskIdToRepositoryLookup(image.id);
-    const index = repo.tasks.findIndex((task) => task.id === image.id);
-    if (index !== -1) {
-      repo.tasks[index] = { ...repo.tasks[index], description: '[saving]' };
-    }
-
+    this.patchTask(repo, { id: image.id, stage: TaskStage.SAVING });
 
     await this.commander.save({ image, path: join(repo.workdir.path, IMAGES_DIR, `${image.name}-${image.tag}.${TAR_FORMAT}`) });
   }
@@ -320,12 +332,9 @@ export class Bundler {
   private async onPullCompleted(image: Image): Promise<void> {
     this.logger?.info({ bundleId: this.bundleId, msg: 'pullCompleted', image });
 
+    this.eventOccurred = true;
     const repo = this.taskIdToRepositoryLookup(image.id);
-    const index = repo.tasks.findIndex((task) => task.id === image.id);
-    if (index !== -1) {
-      repo.tasks[index] = { ...repo.tasks[index], description: '[saving]' };
-    }
-
+    this.patchTask(repo, { id: image.id, stage: TaskStage.SAVING });
 
     const args: DockerSaveArgs = { image, path: join(repo.workdir.path, IMAGES_DIR, `${image.name}-${image.tag}.${TAR_FORMAT}`) };
 
@@ -340,11 +349,9 @@ export class Bundler {
   private async onPackageCompleted(packageId: string): Promise<void> {
     this.logger?.info({ bundleId: this.bundleId, msg: 'packageCompleted', packageId });
 
+    this.eventOccurred = true;
     const repo = this.taskIdToRepositoryLookup(packageId);
-    const index = repo.tasks.findIndex((task) => task.id === packageId);
-    if (index !== -1) {
-      repo.tasks[index] = { ...repo.tasks[index], status: Status.SUCCESS, description: '[done]' };
-    }
+    this.patchTask(repo, { id: packageId, status: Status.SUCCESS, stage: undefined });
     repo.completed++;
 
     if (this.config.cleanupMode === 'on-the-fly' && repo.completed === repo.tasks.length) {
@@ -354,15 +361,21 @@ export class Bundler {
     this.tasksCompleted++;
   }
 
+  private onDownloadCompleted(downloadId: string): void {
+    this.logger?.info({ bundleId: this.bundleId, msg: 'downloadCompleted', downloadId });
+
+    this.eventOccurred = true;
+    const repo = this.taskIdToRepositoryLookup(downloadId);
+    this.patchTask(repo, { id: downloadId, status: Status.SUCCESS, stage: undefined });
+    this.tasksCompleted++;
+  }
+
   private async onSaveCompleted(image: Image): Promise<void> {
     this.logger?.info({ bundleId: this.bundleId, msg: 'saveCompleted', image });
 
+    this.eventOccurred = true;
     const repo = this.taskIdToRepositoryLookup(image.id);
-    const index = repo.tasks.findIndex((task) => task.id === image.id);
-    if (index !== -1) {
-      repo.tasks[index] = { ...repo.tasks[index], status: Status.SUCCESS, description: '[done]' };
-    }
-
+    this.patchTask(repo, { id: image.id, status: Status.SUCCESS, stage: undefined });
     repo.completed++;
 
     if (this.config.cleanupMode === 'on-the-fly' && repo.completed === repo.tasks.length) {
@@ -375,6 +388,8 @@ export class Bundler {
   private async onCommandFailed(failedObj: unknown, error: unknown, message?: string): Promise<void> {
     this.logger?.info({ bundleId: this.bundleId, msg: 'commandFailed', failedObj, error, message });
 
+    this.statusRes = Status.FAILURE;
+    this.eventOccurred = true;
     this.commander.terminate();
     await this.postBundleCleanup();
     throw error;
@@ -382,6 +397,13 @@ export class Bundler {
 
   private taskIdToRepositoryLookup(taskId: string): RepositoryProfile {
     return this.repositoryProfiles.find((repo) => repo.tasks.find((external) => external.id === taskId)) as RepositoryProfile;
+  }
+
+  private patchTask(repo: RepositoryProfile, updatedTask: Partial<RepositoryTask>): void {
+    const index = repo.tasks.findIndex((task) => task.id === updatedTask.id);
+    if (index !== NOT_FOUND_INDEX) {
+      repo.tasks[index] = { ...repo.tasks[index], ...updatedTask };
+    }
   }
 
   private async createOutput(): Promise<void> {
@@ -394,5 +416,8 @@ export class Bundler {
     if (this.config.cleanupMode !== 'none') {
       await this.postBundleCleanup();
     }
+
+    this.statusRes = Status.SUCCESS;
+    this.eventOccurred = true;
   }
 }

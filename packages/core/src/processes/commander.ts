@@ -1,8 +1,9 @@
 import { TypedEmitter } from 'tiny-typed-emitter';
 import { ILogger } from '../common/types';
 import { dockerBuild, dockerPull, dockerSave, DOCKER_EXEC } from './docker';
-import { DockerBuildArgs, DockerPullArgs, DockerSaveArgs, EnvOptions, HelmPackageArgs, Image } from './interfaces';
+import { DockerBuildArgs, DockerPullArgs, DockerSaveArgs, DownloadArgs, EnvOptions, HelmPackageArgs, Image } from './interfaces';
 import { helmPackage, HELM_EXEC } from './helm';
+import { httpDownload } from './http';
 import { terminateSpawns } from '.';
 
 interface BaseCommanderEvents {
@@ -12,6 +13,10 @@ interface BaseCommanderEvents {
 
 interface HelmCommanderEvents extends BaseCommanderEvents {
   packageCompleted: (packageId: string) => Promise<void> | void;
+}
+
+interface HttpCommanderEvents extends BaseCommanderEvents {
+  downloadCompleted: (downloadId: string) => Promise<void> | void;
 }
 
 interface DockerCommanderEvents extends BaseCommanderEvents {
@@ -25,7 +30,7 @@ export interface CommanderOptions {
   logger?: ILogger;
 }
 
-export class Commander extends TypedEmitter<DockerCommanderEvents & HelmCommanderEvents> {
+export class Commander extends TypedEmitter<DockerCommanderEvents & HelmCommanderEvents & HttpCommanderEvents> {
   public constructor(private readonly options?: CommanderOptions) {
     super();
   }
@@ -66,6 +71,16 @@ export class Commander extends TypedEmitter<DockerCommanderEvents & HelmCommande
       this.emit('packageCompleted', args.packageId);
     } catch (error) {
       this.emit('commandFailed', args.packageId, error);
+      throw error;
+    }
+  }
+
+  public async download(args: DownloadArgs): Promise<void> {
+    try {
+      await httpDownload({ ...args, ...this.options });
+      this.emit('downloadCompleted', args.id);
+    } catch (error) {
+      this.emit('commandFailed', args.id, error);
       throw error;
     }
   }

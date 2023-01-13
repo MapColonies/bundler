@@ -8,10 +8,17 @@ export interface RepositoryTask {
   archivedPath: string;
   status: Status;
   name: string;
-  description?: string;
+  stage?: TaskStage;
 }
 
-export type TaskKind = 'Dockerfile' | 'migrations.Dockerfile' | 'helm';
+export enum TaskStage {
+  BUILDING = 'building',
+  PULLING = 'pulling',
+  SAVING = 'saving',
+  DOWNLOADING = 'downloading',
+}
+
+export type TaskKind = 'Dockerfile' | 'migrations.Dockerfile' | 'helm' | 'asset';
 
 export interface Repository {
   id: RepositoryId;
@@ -28,6 +35,7 @@ export interface RepositoryProfile extends Repository {
   assets?: BundlePath;
   tasks: RepositoryTask[];
   completed: number;
+  profiled: boolean;
 }
 
 export interface BundlePath {

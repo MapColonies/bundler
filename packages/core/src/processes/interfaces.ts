@@ -30,3 +30,9 @@ export interface HelmPackageArgs {
   path: string;
   destination: string;
 }
+
+export interface DownloadArgs {
+  id: string;
+  url: string;
+  destination: string;
+}
