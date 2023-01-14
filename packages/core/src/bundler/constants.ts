@@ -2,8 +2,6 @@ import { join } from 'path';
 import { BundlerOptions } from './interfaces';
 
 export const TEMP_DIR = '/tmp';
-export const IMAGES_DIR = 'images';
-export const ASSETS_DIR = 'assets';
 export const SOURCE_CODE_ARCHIVE = 'source-code';
 export const HTTP_CLIENT_TIMEOUT = 10000;
 
@@ -18,10 +16,18 @@ export const HELM_DIR = 'helm';
 
 export const TAR_FORMAT = 'tar';
 export const TAR_GZIP_ARCHIVE_FORMAT = 'tar.gz';
+export const TGZ_ARCHIVE_FORMAT = 'tgz';
 export const ZIP_ARCHIVE_FORMAT = 'zip';
 
 export const DEFAULT_BUNDLER_DIR = 'bundler';
 export const DEFAULT_BUNDLER_OUTPUT = `bundle.${TAR_GZIP_ARCHIVE_FORMAT}`;
+export const MANIFEST_FILE = 'manifest.yaml';
+
+export enum BundleDirs {
+  IMAGES = 'images',
+  HELM_PACKGES = 'helm',
+  ASSETS = 'assets',
+}
 
 export const DEFAULT_OPTIONS: BundlerOptions = {
   workdir: join(TEMP_DIR, DEFAULT_BUNDLER_DIR),

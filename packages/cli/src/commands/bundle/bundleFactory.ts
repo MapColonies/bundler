@@ -13,7 +13,6 @@ import { createTerminalStreamer } from '../../ui/terminalStreamer';
 import { repoProvidedCheck } from './checks';
 import { repositoriesCoerce, repositoryCoerce } from './coerces';
 import { BUNDLE_FAILED_MESSAGE, BUNDLE_SUCCESS_MESSAGE, command, describe, PREFIX } from './constants';
-import { TaskStage } from '@bundler/core/dist/bundler/interfaces';
 
 interface BundleRequest {
   repository?: RepositoryId;

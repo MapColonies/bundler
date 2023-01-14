@@ -17,7 +17,6 @@ const columnifyOptions: ExtendedColumnifyOptions = {
   preserveNewLines: true,
   columns: ['name', 'language', 'topics'],
   showHeaders: true,
-  columnSplitter: '   ',
   alternateChalks: [chalk.bold.hex('#a5d4d3'), chalk.cyanBright],
 };
 
@@ -59,28 +58,32 @@ export const listCommandFactory: FactoryFunction<CommandModule<GlobalArguments, 
     logger.debug({ msg: 'executing command', command, args: { visibility, topics }, filter });
 
     try {
-      let filtered: Listed[] = [];
+      const filtered: Listed[] = [];
 
       let cycle = LifeCycle.PRE;
 
       const getData = (): string => {
-        if (cycle === LifeCycle.PRE) {
-          const main = [{ level: 3, status: Status.PENDING }];
-          return styleFunc({ prefix: { content: PREFIX(command), isBold: true, status: Status.PENDING }, main });
+        const status = cycle === LifeCycle.POST ? Status.SUCCESS : Status.PENDING;
+        const prefix = { content: PREFIX(command), isBold: true, status };
+        const spinner = { level: 3, status };
+
+        if (status === Status.PENDING && filtered.length === 0) {
+          return styleFunc({ prefix, main: [spinner] });
         }
-        const status = Status.SUCCESS;
-        const main = [{ level: 3, status, content: { config: columnifyOptions, data: filtered } }];
+
+        const columns = { level: 3, status, content: { config: columnifyOptions, data: filtered } };
+        const main = cycle === LifeCycle.POST ? [columns] : [columns, spinner];
         const suffix = { level: 3, status, isBold: true, content: ` listed ${filtered.length} repositories ` };
         return styleFunc({ prefix: { content: PREFIX(command), isBold: true, status }, main, suffix });
       };
 
       createTerminalStreamer(process.stderr, getData);
 
-      const repos: GithubRepository[] = await githubClient.listRepositories(GITHUB_ORG, visibility, filter);
+      for await (const repos of githubClient.listRepositoriesGenerator(GITHUB_ORG, visibility, filter)) {
+        filtered.push(...repos.map((r) => ({ name: r.name, language: r.language, topics: r.topics, status: Status.SUCCESS })));
+      }
 
       // logger.debug({ msg: 'got repositories', count: repos.length });
-
-      filtered = repos.map((r) => ({ name: r.name, language: r.language, topics: r.topics, status: Status.SUCCESS }));
 
       cycle = LifeCycle.POST;
 

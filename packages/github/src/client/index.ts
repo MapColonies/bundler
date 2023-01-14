@@ -47,6 +47,19 @@ export class GithubClient implements IGithubClient {
     return filter ? filterRepositories(repositories, filter) : repositories;
   }
 
+  public async *listRepositoriesGenerator(
+    org: string,
+    type?: RepositoryType,
+    filter?: RepositoryFilter,
+    perPage = GITHUB_MAX_PAGINATION_LIMIT
+  ): AsyncGenerator<GithubRepository[]> {
+    for await (const response of this._octokit.paginate.iterator('GET /orgs/{org}/repos', { org, type, per_page: perPage })) {
+      yield filter ? filterRepositories(response.data, filter) : response.data;
+    }
+
+    yield [];
+  }
+
   public async listAssets(id: Required<RepositoryId>): Promise<GithubAsset[]> {
     const releases = await this._octokit.rest.repos.listReleases({ owner: id.owner, repo: id.name });
 

@@ -1,8 +1,9 @@
-import { mkdir, rm } from 'fs/promises';
+import { mkdir, rm, writeFile } from 'fs/promises';
 import { basename, dirname, join } from 'path';
 import { nanoid } from 'nanoid';
 import { RepositoryId, IGithubClient, GithubClient } from '@bundler/github';
 import * as tar from 'tar';
+import { dump } from 'js-yaml';
 import { writeBuffer } from '../fs';
 import { Commander } from '../processes/commander';
 import { DockerSaveArgs, Image } from '../processes/interfaces';
@@ -15,14 +16,16 @@ import {
   MIGRATIONS_DOCKER_FILE,
   TAR_GZIP_ARCHIVE_FORMAT,
   DEFAULT_CONTAINER_REGISTRY,
-  IMAGES_DIR,
   DEFAULT_OPTIONS,
   GITHUB_ORG,
   SOURCE_CODE_ARCHIVE,
-  ASSETS_DIR,
   HELM_DIR,
+  MANIFEST_FILE,
+  BundleDirs,
+  TGZ_ARCHIVE_FORMAT,
 } from './constants';
 import { BundleStatus, Status } from './status';
+import { BundleOutputTree, Manifest } from './manifest';
 
 const NOT_FOUND_INDEX = -1;
 
@@ -80,10 +83,9 @@ export class Bundler {
   }
 
   private get allTasksCompleted(): boolean {
-    return this.tasksCompleted === this.tasksTotal && this.repositoryProfiles.every(p => p.profiled);
+    return this.tasksCompleted === this.tasksTotal && this.repositoryProfiles.every((p) => p.profiled);
   }
 
-  // TODO: bundle name as arg
   public async bundle(repositories: Repository[]): Promise<void> {
     this.repositoryProfiles.push(...repositories.map((repo) => this.determineBaseRepositoryProfile(repo)));
 
@@ -144,7 +146,7 @@ export class Bundler {
     // TODO: remove
     let assetsDir: BundlePath | undefined = undefined;
     if (repository.includeAssets === true) {
-      assetsDir = { path: join(repoWorkdir.path, ASSETS_DIR), shouldMake: true, shouldRemove: false };
+      assetsDir = { path: join(repoWorkdir.path, BundleDirs.ASSETS), shouldMake: true, shouldRemove: false };
     }
 
     this.eventOccurred = true;
@@ -229,11 +231,11 @@ export class Bundler {
 
         const kinds = repo.tasks.map((task) => task.kind);
         if (kinds.includes(DOCKER_FILE) || kinds.includes(MIGRATIONS_DOCKER_FILE)) {
-          await mkdir(join(repo.workdir.path, IMAGES_DIR));
+          await mkdir(join(repo.workdir.path, BundleDirs.IMAGES));
         }
 
         if (kinds.includes(HELM_DIR)) {
-          await mkdir(join(repo.workdir.path, HELM_DIR));
+          await mkdir(join(repo.workdir.path, BundleDirs.HELM_PACKGES));
         }
       }
 
@@ -293,7 +295,6 @@ export class Bundler {
     return commands;
   }
 
-  // TODO: pre bundle cleanup should run when all external tasks of a repo are done
   private async preBundleCleanup(repos?: RepositoryProfile[]): Promise<void> {
     const removable: BundlePath[] = [];
 
@@ -326,7 +327,7 @@ export class Bundler {
     const repo = this.taskIdToRepositoryLookup(image.id);
     this.patchTask(repo, { id: image.id, stage: TaskStage.SAVING });
 
-    await this.commander.save({ image, path: join(repo.workdir.path, IMAGES_DIR, `${image.name}-${image.tag}.${TAR_FORMAT}`) });
+    await this.commander.save({ image, path: join(repo.workdir.path, BundleDirs.IMAGES, `${image.name}-${image.tag}.${TAR_FORMAT}`) });
   }
 
   private async onPullCompleted(image: Image): Promise<void> {
@@ -336,7 +337,7 @@ export class Bundler {
     const repo = this.taskIdToRepositoryLookup(image.id);
     this.patchTask(repo, { id: image.id, stage: TaskStage.SAVING });
 
-    const args: DockerSaveArgs = { image, path: join(repo.workdir.path, IMAGES_DIR, `${image.name}-${image.tag}.${TAR_FORMAT}`) };
+    const args: DockerSaveArgs = { image, path: join(repo.workdir.path, BundleDirs.IMAGES, `${image.name}-${image.tag}.${TAR_FORMAT}`) };
 
     if (repo.buildImageLocally === false) {
       args.registry = DEFAULT_CONTAINER_REGISTRY;
@@ -411,6 +412,7 @@ export class Bundler {
       await this.preBundleCleanup();
     }
 
+    await this.createManifest();
     await this.createBundle();
 
     if (this.config.cleanupMode !== 'none') {
@@ -419,5 +421,51 @@ export class Bundler {
 
     this.statusRes = Status.SUCCESS;
     this.eventOccurred = true;
+  }
+
+  private async createManifest(): Promise<void> {
+    const outputTree: BundleOutputTree = {};
+
+    const repositoryParams = this.repositoryProfiles.map((repo) => {
+      const images: string[] = [];
+      const assets: string[] = [];
+      const helm: string[] = [];
+
+      repo.tasks.forEach((task) => {
+        if (task.kind === 'Dockerfile' || task.kind === 'migrations.Dockerfile') {
+          images.push(`${task.name}.${TAR_FORMAT}`);
+        } else if (task.kind === 'asset') {
+          assets.push(task.name);
+        } else {
+          helm.push(`${task.name}.${TGZ_ARCHIVE_FORMAT}`);
+        }
+      });
+
+      const repoOutput = [`${SOURCE_CODE_ARCHIVE}.${TAR_GZIP_ARCHIVE_FORMAT}`, { images: images }, { assets: assets }, { helm: helm }];
+
+      const id = stringifyRepositoryId(repo.id);
+      outputTree[id] = repoOutput;
+
+      return {
+        id,
+        buildImageLocally: repo.buildImageLocally,
+        includeMigrations: repo.includeMigrations,
+        includeAssets: repo.includeAssets,
+        includeHelmPackage: repo.includeHelmPackage,
+      };
+    });
+
+    const manifest: Manifest = {
+      id: this.bundleId,
+      createdAt: new Date().toISOString(),
+      destination: this.config.outputPath,
+      output: outputTree,
+      parameters: {
+        repositories: repositoryParams,
+      },
+    };
+
+    const manifestPath = join(this.config.workdir, this.bundleId, MANIFEST_FILE);
+    await writeFile(manifestPath, dump(manifest));
   }
 }
