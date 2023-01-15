@@ -2,6 +2,13 @@ import { IGithubClient, RepositoryId } from '@bundler/github';
 import { ILogger } from '../common/types';
 import { Status } from './status';
 
+export interface BaseOutput {
+  id: string;
+  hostname: string;
+  destination: string;
+  createdAt: string;
+}
+
 export interface RepositoryTask {
   id: string;
   kind: TaskKind;

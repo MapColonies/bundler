@@ -1,3 +1,4 @@
+import { hostname } from 'os';
 import { mkdir, rm, writeFile } from 'fs/promises';
 import { basename, dirname, join } from 'path';
 import { nanoid } from 'nanoid';
@@ -23,9 +24,11 @@ import {
   MANIFEST_FILE,
   BundleDirs,
   TGZ_ARCHIVE_FORMAT,
+  CHECKSUM_FILE,
 } from './constants';
 import { BundleStatus, Status } from './status';
 import { BundleOutputTree, Manifest } from './manifest';
+import { ChecksumOutput, createChecksum } from './checksum/checksum';
 
 const NOT_FOUND_INDEX = -1;
 
@@ -94,28 +97,28 @@ export class Bundler {
     const commands = this.constructCommands();
 
     if (this.allTasksCompleted) {
-      return this.createOutput();
+      return this.createOutputs();
     }
 
     const promisifyTasksChain = new Promise((resolve, reject) => {
       this.commander.on('saveCompleted', async (image) => {
         await this.onSaveCompleted(image);
         if (this.allTasksCompleted) {
-          resolve(await this.createOutput());
+          resolve(await this.createOutputs());
         }
       });
 
       this.commander.on('packageCompleted', async (packageId) => {
         await this.onPackageCompleted(packageId);
         if (this.allTasksCompleted) {
-          resolve(await this.createOutput());
+          resolve(await this.createOutputs());
         }
       });
 
       this.commander.on('downloadCompleted', async (downloadId) => {
         this.onDownloadCompleted(downloadId);
         if (this.allTasksCompleted) {
-          resolve(await this.createOutput());
+          resolve(await this.createOutputs());
         }
       });
 
@@ -407,13 +410,25 @@ export class Bundler {
     }
   }
 
-  private async createOutput(): Promise<void> {
+  private async createOutputs(): Promise<void> {
     if (this.config.cleanupMode === 'post') {
       await this.preBundleCleanup();
     }
 
-    await this.createManifest();
+    const manifest = this.createManifest();
+    await writeFile(join(this.config.workdir, this.bundleId, MANIFEST_FILE), dump(manifest));
+
     await this.createBundle();
+
+    const checksum = await createChecksum(this.config.outputPath);
+    const checksumOutput: ChecksumOutput = {
+      id: manifest.id,
+      hostname: manifest.hostname,
+      createdAt: manifest.createdAt,
+      destination: `${this.config.outputPath}-${CHECKSUM_FILE}`,
+      checksum,
+    };
+    await writeFile(checksumOutput.destination, dump(checksumOutput));
 
     if (this.config.cleanupMode !== 'none') {
       await this.postBundleCleanup();
@@ -423,7 +438,7 @@ export class Bundler {
     this.eventOccurred = true;
   }
 
-  private async createManifest(): Promise<void> {
+  private createManifest(): Manifest {
     const outputTree: BundleOutputTree = {};
 
     const repositoryParams = this.repositoryProfiles.map((repo) => {
@@ -455,8 +470,9 @@ export class Bundler {
       };
     });
 
-    const manifest: Manifest = {
+    return {
       id: this.bundleId,
+      hostname: hostname(),
       createdAt: new Date().toISOString(),
       destination: this.config.outputPath,
       output: outputTree,
@@ -464,8 +480,5 @@ export class Bundler {
         repositories: repositoryParams,
       },
     };
-
-    const manifestPath = join(this.config.workdir, this.bundleId, MANIFEST_FILE);
-    await writeFile(manifestPath, dump(manifest));
   }
 }

@@ -1,4 +1,5 @@
 import { BundleDirs } from '../constants';
+import { BaseOutput } from '../interfaces';
 
 interface RepositoryParameters {
   id: string;
@@ -16,10 +17,7 @@ export interface BundleOutputTree {
   [repositoryId: string]: (OptionalBundleDirs | string)[];
 }
 
-export interface Manifest {
-  id: string;
-  destination: string;
-  createdAt: string;
+export interface Manifest extends BaseOutput {
   output: BundleOutputTree;
   parameters: { repositories: RepositoryParameters[] };
 }
