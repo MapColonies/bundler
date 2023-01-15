@@ -3,12 +3,11 @@ import { FactoryFunction } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
 import { IGithubClient } from '@bundler/github';
 import { CommandModule } from 'yargs';
-import chalk from 'chalk';
 import { dockerVerify, helmVerify } from '@bundler/core';
 import { GlobalArguments } from '../../cliBuilderFactory';
 import { ExitCodes, EXIT_CODE, LifeCycle, SERVICES, Status } from '../../common/constants';
-import { createTerminalStreamer } from '../../ui/terminalStreamer';
-import { ExtendedColumnifyOptions, styleFunc } from '../../ui/styler';
+import { oldCreateTerminalStreamer } from '../../ui/terminalStreamer';
+import { ExtendedColumnifyOptions, style } from '../../ui/styler';
 import { command, describe, NOT_VERIFIED_MESSAGE, PREFIX, VERIFIED_MESSAGE } from './constants';
 
 const promiseResult = async <T>(promise: Promise<T>): Promise<[undefined, T] | [unknown, undefined]> => {
@@ -75,20 +74,20 @@ export const verifyCommandFactory: FactoryFunction<CommandModule<GlobalArguments
       const getData = (): string => {
         if (cycle === LifeCycle.PRE) {
           const main = [{ level: 3, status: Status.PENDING, content: { data: results, config: columnifyOptions } }];
-          return styleFunc({ prefix: { content: PREFIX(command), isBold: true, status: Status.PENDING }, main });
+          return style({ prefix: { content: PREFIX(command), isBold: true, status: Status.PENDING }, main });
         }
         const status = results.every((entity) => entity.status === Status.SUCCESS) ? Status.SUCCESS : Status.FAILURE;
 
         const main = [{ level: 3, status, content: { data: results, config: columnifyOptions } }];
         const message = status === Status.SUCCESS ? VERIFIED_MESSAGE : NOT_VERIFIED_MESSAGE;
-        return styleFunc({
+        return style({
           prefix: { content: PREFIX(command), isBold: true, status },
           suffix: { content: message, level: 3, isBold: true, status },
           main,
         });
       };
 
-      createTerminalStreamer(process.stderr, getData);
+      oldCreateTerminalStreamer(process.stderr, getData);
 
       await Promise.allSettled(
         entities.map(async (entity, index) => {

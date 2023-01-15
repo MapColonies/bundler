@@ -131,7 +131,7 @@ export interface StyleRequest {
   suffix?: Title;
 }
 
-export const styleFunc = (request: StyleRequest): string => {
+export const style = (request: StyleRequest): string => {
   const { prefix, suffix, main } = request;
 
   const result: { prefix?: string; suffix?: string; main?: string } = { main: '' };

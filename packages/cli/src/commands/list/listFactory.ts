@@ -7,8 +7,8 @@ import chalk from 'chalk';
 import { GlobalArguments } from '../../cliBuilderFactory';
 import { ExitCodes, EXIT_CODE, LifeCycle, SERVICES, Status } from '../../common/constants';
 import { checkWrapper } from '../../wrappers/check';
-import { createTerminalStreamer } from '../../ui/terminalStreamer';
-import { ExtendedColumnifyOptions, styleFunc } from '../../ui/styler';
+import { oldCreateTerminalStreamer } from '../../ui/terminalStreamer';
+import { ExtendedColumnifyOptions, style } from '../../ui/styler';
 import { command, describe, PREFIX } from './constants';
 import { visibilityTokenImplicationCheck } from './checks';
 
@@ -68,16 +68,16 @@ export const listCommandFactory: FactoryFunction<CommandModule<GlobalArguments, 
         const spinner = { level: 3, status };
 
         if (status === Status.PENDING && filtered.length === 0) {
-          return styleFunc({ prefix, main: [spinner] });
+          return style({ prefix, main: [spinner] });
         }
 
         const columns = { level: 3, status, content: { config: columnifyOptions, data: filtered } };
         const main = cycle === LifeCycle.POST ? [columns] : [columns, spinner];
         const suffix = { level: 3, status, isBold: true, content: ` listed ${filtered.length} repositories ` };
-        return styleFunc({ prefix: { content: PREFIX(command), isBold: true, status }, main, suffix });
+        return style({ prefix: { content: PREFIX(command), isBold: true, status }, main, suffix });
       };
 
-      createTerminalStreamer(process.stderr, getData);
+      oldCreateTerminalStreamer(process.stderr, getData);
 
       for await (const repos of githubClient.listRepositoriesGenerator(GITHUB_ORG, visibility, filter)) {
         filtered.push(...repos.map((r) => ({ name: r.name, language: r.language, topics: r.topics, status: Status.SUCCESS })));

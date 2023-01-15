@@ -3,8 +3,6 @@ import { EOL } from 'os';
 import * as readline from 'readline';
 import { ExitCodes } from '../common/constants';
 
-const RENDER_INTERVAL = 100;
-
 const clearStream = (stream: NodeJS.WriteStream, numberOfLines: number): void => {
   for (let index = 0; index < numberOfLines; index++) {
     readline.moveCursor(stream, 0, -1);
@@ -22,7 +20,21 @@ const writeToStream = (stream: NodeJS.WriteStream, lines: string[]): void => {
   }
 };
 
-export const createTerminalStreamer = (stream: NodeJS.WriteStream, scrapeFunc: () => string, interval = RENDER_INTERVAL): void => {
+export type StreamFunc = (content: string) => void;
+
+export const createTerminalStreamer = (stream: NodeJS.WriteStream): StreamFunc => {
+  let lastNumOfLines = 0;
+  const clearAndWrite = (content: string): void => {
+    clearStream(stream, lastNumOfLines);
+    const lines = content.split(EOL);
+    lastNumOfLines = lines.length;
+    writeToStream(stream, lines);
+  };
+
+  return clearAndWrite;
+};
+
+export const oldCreateTerminalStreamer = (stream: NodeJS.WriteStream, scrapeFunc: () => string, interval = 100): void => {
   let renderIntervalId: NodeJS.Timeout | undefined;
   let lastNumOfLines = 0;
 

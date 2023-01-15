@@ -4,6 +4,7 @@ import { basename, dirname, join } from 'path';
 import { nanoid } from 'nanoid';
 import { RepositoryId, IGithubClient, GithubClient } from '@bundler/github';
 import * as tar from 'tar';
+import { TypedEmitter } from 'tiny-typed-emitter';
 import { dump } from 'js-yaml';
 import { writeBuffer } from '../fs';
 import { Commander } from '../processes/commander';
@@ -36,7 +37,11 @@ const stringifyRepositoryId = (id: RepositoryId): string => {
   return `${id.owner ?? GITHUB_ORG}-${id.name}-${id.ref ?? DEFAULT_BRANCH}`;
 };
 
-export class Bundler {
+interface BundlerEvents {
+  statusUpdated: (status: BundleStatus) => void;
+}
+
+export class Bundler extends TypedEmitter<BundlerEvents>{
   private readonly logger: ILogger | undefined;
   private readonly githubClient: IGithubClient;
   private readonly commander: Commander;
@@ -52,6 +57,7 @@ export class Bundler {
   // TODO generic docker worker and github interface
   // TODO: handle verbosity and logging including for commands
   public constructor(private readonly config: BundlerOptions = DEFAULT_OPTIONS) {
+    super();
     this.logger = config.logger;
     this.githubClient = config.githubClient ?? new GithubClient();
     this.commander = new Commander({ verbose: config.verbose, logger: this.logger });
@@ -153,6 +159,7 @@ export class Bundler {
     }
 
     this.eventOccurred = true;
+    this.emit('statusUpdated', this.status);
 
     return {
       ...repository,
@@ -244,6 +251,7 @@ export class Bundler {
 
       repo.profiled = true;
       this.eventOccurred = true;
+      this.emit('statusUpdated', this.status);
     }
   }
 
@@ -327,6 +335,7 @@ export class Bundler {
     this.logger?.info({ bundleId: this.bundleId, msg: 'buildCompleted', image });
 
     this.eventOccurred = true;
+    this.emit('statusUpdated', this.status);
     const repo = this.taskIdToRepositoryLookup(image.id);
     this.patchTask(repo, { id: image.id, stage: TaskStage.SAVING });
 
@@ -337,6 +346,7 @@ export class Bundler {
     this.logger?.info({ bundleId: this.bundleId, msg: 'pullCompleted', image });
 
     this.eventOccurred = true;
+    this.emit('statusUpdated', this.status);
     const repo = this.taskIdToRepositoryLookup(image.id);
     this.patchTask(repo, { id: image.id, stage: TaskStage.SAVING });
 
@@ -354,6 +364,7 @@ export class Bundler {
     this.logger?.info({ bundleId: this.bundleId, msg: 'packageCompleted', packageId });
 
     this.eventOccurred = true;
+    this.emit('statusUpdated', this.status);
     const repo = this.taskIdToRepositoryLookup(packageId);
     this.patchTask(repo, { id: packageId, status: Status.SUCCESS, stage: undefined });
     repo.completed++;
@@ -369,6 +380,7 @@ export class Bundler {
     this.logger?.info({ bundleId: this.bundleId, msg: 'downloadCompleted', downloadId });
 
     this.eventOccurred = true;
+    this.emit('statusUpdated', this.status);
     const repo = this.taskIdToRepositoryLookup(downloadId);
     this.patchTask(repo, { id: downloadId, status: Status.SUCCESS, stage: undefined });
     this.tasksCompleted++;
@@ -378,6 +390,7 @@ export class Bundler {
     this.logger?.info({ bundleId: this.bundleId, msg: 'saveCompleted', image });
 
     this.eventOccurred = true;
+    this.emit('statusUpdated', this.status);
     const repo = this.taskIdToRepositoryLookup(image.id);
     this.patchTask(repo, { id: image.id, status: Status.SUCCESS, stage: undefined });
     repo.completed++;
@@ -394,6 +407,7 @@ export class Bundler {
 
     this.statusRes = Status.FAILURE;
     this.eventOccurred = true;
+    this.emit('statusUpdated', this.status);
     this.commander.terminate();
     await this.postBundleCleanup();
     throw error;
@@ -411,6 +425,8 @@ export class Bundler {
   }
 
   private async createOutputs(): Promise<void> {
+    this.eventOccurred = true;
+    this.emit('statusUpdated', this.status);
     if (this.config.cleanupMode === 'post') {
       await this.preBundleCleanup();
     }
@@ -436,6 +452,7 @@ export class Bundler {
 
     this.statusRes = Status.SUCCESS;
     this.eventOccurred = true;
+    this.emit('statusUpdated', this.status);
   }
 
   private createManifest(): Manifest {
