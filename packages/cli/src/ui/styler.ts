@@ -3,7 +3,7 @@ import chalk, { ChalkFunction } from 'chalk';
 import columnify, { GlobalOptions as ColumnifyOptions } from 'columnify';
 import { dots as spinner } from 'cli-spinners';
 
-let i = 0;
+let spinnerFrameIndex = 0;
 
 const PADDING = ' ';
 
@@ -48,7 +48,7 @@ const statusToMarkMap = (status: Status): string => {
     case Status.SUCCESS:
       return chalk.green('✔');
     case Status.PENDING:
-      return chalk.cyan(spinner.frames[++i % spinner.frames.length]);
+      return chalk.cyan(spinner.frames[spinnerFrameIndex % spinner.frames.length]);
     case Status.FAILURE:
       return chalk.red('✘');
   }
@@ -162,6 +162,8 @@ export const style = (request: StyleRequest): string => {
       }
     }
   });
+
+  spinnerFrameIndex++;
 
   for (const content of main ?? []) {
     for (const styledContent of styleContent(content)) {

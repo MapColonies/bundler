@@ -1,19 +1,19 @@
-import { EOL } from 'os';
 import { Bundler, BundlerOptions, CleanupMode, BundleStatus } from '@bundler/core';
 import { IGithubClient, RepositoryId } from '@bundler/github';
 import { FactoryFunction } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
 import { Arguments, Argv, CommandModule } from 'yargs';
-import { ExitCodes, EXIT_CODE, SERVICES, Status } from '../../common/constants';
+import { ExitCodes, EXIT_CODE, SERVICES } from '../../common/constants';
 import { GlobalArguments } from '../../cliBuilderFactory';
 import { checkWrapper } from '../../wrappers/check';
 import { coerceWrapper } from '../../wrappers/coerce';
-import { Content, ExtendedColumnifyOptions, style, Title } from '../../ui/styler';
-import { oldCreateTerminalStreamer, createTerminalStreamer } from '../../ui/terminalStreamer';
+import { ExtendedColumnifyOptions } from '../../ui/styler';
+import { createTerminalStreamer } from '../../ui/terminalStreamer';
+import { convert } from '../../ui/converter';
 import { Renderer } from '../../ui/renderer';
 import { repoProvidedCheck } from './checks';
 import { repositoriesCoerce, repositoryCoerce } from './coerces';
-import { BUNDLE_FAILED_MESSAGE, BUNDLE_SUCCESS_MESSAGE, command, describe, PREFIX } from './constants';
+import { command, describe } from './constants';
 
 interface BundleRequest {
   repository?: RepositoryId;
@@ -124,7 +124,10 @@ export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments
     try {
       const bundler = new Bundler({ workdir, outputPath, cleanupMode, isDebugMode, verbose, githubClient });
       const renderer = new Renderer(createTerminalStreamer(process.stderr));
-      bundler.on('statusUpdated', (status: BundleStatus) => renderer.update(status));
+      bundler.on('statusUpdated', (status: BundleStatus) => {
+        const request = convert(status);
+        renderer.current = request;
+      });
 
       await bundler.bundle(bundleRequest);
 
