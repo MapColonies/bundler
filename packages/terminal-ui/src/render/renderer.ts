@@ -1,6 +1,7 @@
 import { ExitCodes } from '@bundler/common';
-import { style, StyleRequest } from '../style/styler';
-import { StreamFunc } from '../streamer/terminalStreamer';
+import { StreamFunc } from '../stream/terminalStreamer';
+import { style } from '../style/styler';
+import { StyleRequest } from '../style/styleRequest';
 
 const DEFAULT_RENDER_INTERVAL = 100;
 

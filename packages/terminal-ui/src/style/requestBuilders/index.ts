@@ -1,4 +1,4 @@
-import { StyleRequest } from '../styler';
+import { StyleRequest } from '../styleRequest';
 
 export const PREFIX = (command: string): string => ` > executing ${command} command `;
 

@@ -1,60 +1,11 @@
 import { EOL } from 'os';
-import { Status } from '@bundler/common';
-import chalk, { ChalkFunction } from 'chalk';
-import columnify, { GlobalOptions as ColumnifyOptions } from 'columnify';
+import chalk from 'chalk';
+import columnify from 'columnify';
 import { dots as spinner } from 'cli-spinners';
+import { EMPTY_LINE, indent, statusToChalkMap, statusToMarkMap } from './util';
+import { Content, StyleRequest } from './styleRequest';
 
 let spinnerFrameIndex = 0;
-
-const PADDING = ' ';
-
-interface Statused {
-  status: Status;
-  content?: string;
-}
-
-interface Styled {
-  isBold?: boolean;
-  isDim?: boolean;
-  level?: number;
-  status?: Status;
-}
-
-interface StringedContent extends Styled {
-  status: Status;
-  content?: string;
-  subContent?: Content;
-}
-
-interface ColumnedContent<T extends Statused> extends Styled {
-  status: Status;
-  content: { config: ExtendedColumnifyOptions; data: T[] };
-  subContent?: Content;
-}
-
-const statusToChalkMap: Record<Status, ChalkFunction> = {
-  [Status.SUCCESS]: chalk.inverse.green,
-  [Status.PENDING]: chalk.inverse.cyan,
-  [Status.FAILURE]: chalk.inverse.red,
-};
-
-const statusToMarkMap = (status: Status): string => {
-  switch (status) {
-    case Status.SUCCESS:
-      return chalk.green('✔');
-    case Status.PENDING:
-      return chalk.cyan(spinner.frames[spinnerFrameIndex % spinner.frames.length]);
-    case Status.FAILURE:
-      return chalk.red('✘');
-  }
-};
-const indent = (content: string, amount = 0): string => {
-  const indentation = PADDING.repeat(Math.max(0, amount));
-  return content
-    .split(EOL)
-    .map((line) => `${indentation}${line}`)
-    .join(EOL);
-};
 
 interface StyleResult {
   prefix?: string;
@@ -64,7 +15,9 @@ interface StyleResult {
 
 const strigifyResult = (result: StyleResult): string => {
   const { prefix, main, suffix } = result;
-  return `${prefix !== undefined ? `${EOL}${prefix}${EOL}` : ''}${main ?? ''}${suffix !== undefined ? `${EOL}${suffix}` : ''}`;
+  return `${prefix !== undefined ? `${EOL}${prefix}${EOL}` : EMPTY_LINE}${main ?? EMPTY_LINE}${
+    suffix !== undefined ? `${EOL}${suffix}` : EMPTY_LINE
+  }`;
 };
 
 function* styleContent(current?: Content): Generator<string> {
@@ -74,7 +27,7 @@ function* styleContent(current?: Content): Generator<string> {
 
   const { content, status, level, isBold, isDim } = current;
 
-  let strigifiedContent = '';
+  let strigifiedContent = EMPTY_LINE;
 
   if (typeof content === 'undefined') {
     strigifiedContent = `${statusToMarkMap(status)}`;
@@ -82,9 +35,11 @@ function* styleContent(current?: Content): Generator<string> {
     strigifiedContent = content;
   } else {
     const { config, data } = content;
-    data.forEach((d) => {
+
+    for (const d of data) {
       d.content = statusToMarkMap(d.status);
-    });
+    }
+
     const { alternateChalks } = config;
 
     strigifiedContent = columnify(data, config);
@@ -109,29 +64,17 @@ function* styleContent(current?: Content): Generator<string> {
   yield* styleContent(current.subContent);
 }
 
-export interface Title extends Styled {
-  content: string;
-}
-
-export type Content = ColumnedContent<Statused> | StringedContent;
-
-export interface ExtendedColumnifyOptions extends ColumnifyOptions {
-  preserveNewLines: true;
-  alternateChalks?: ChalkFunction[];
-}
-
-export interface StyleRequest {
-  prefix?: Title;
-  main?: Content[];
-  suffix?: Title;
-}
+// TODO: improve
+export const getSpinnerFrame = (): string => {
+  return spinner.frames[spinnerFrameIndex % spinner.frames.length];
+};
 
 export const style = (request: StyleRequest): string => {
   const { prefix, suffix, main } = request;
 
-  const result: { prefix?: string; suffix?: string; main?: string } = { main: '' };
+  const result: { prefix?: string; suffix?: string; main?: string } = { main: EMPTY_LINE };
 
-  [prefix, suffix].forEach((title) => {
+  for (const title of [prefix, suffix]) {
     if (title) {
       const { level, isBold, status, isDim } = title;
       let { content } = title;
@@ -156,7 +99,7 @@ export const style = (request: StyleRequest): string => {
         result.suffix = content;
       }
     }
-  });
+  }
 
   spinnerFrameIndex++;
 

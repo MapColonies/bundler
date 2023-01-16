@@ -1,20 +1,21 @@
 import { EOL } from 'os';
 import { BundleStatus } from '@bundler/core';
 import { Status } from '@bundler/common';
-import { Content, ExtendedColumnifyOptions, StyleRequest, Title } from '../styler';
+import { Level, PADDING } from '../util';
+import { Content, ExtendedColumnifyOptions, StyleRequest, Title } from '../styleRequest';
 import { PREFIX, StyleRequestBuilder } from '.';
 
 const COMMAND_NAME = 'bundle';
 
-const BUNDLE_SUCCESS_MESSAGE = (path: string): string => ` bundle is ready at ${path} 🎉 `;
-const BUNDLE_FAILED_MESSAGE = ' bundle creation has failed 🥺 ';
+const BUNDLE_SUCCESS_MESSAGE = (path: string): string => `${PADDING}bundle is ready at ${path} 🎉${PADDING}`;
+const BUNDLE_FAILED_MESSAGE = `${PADDING}bundle creation has failed 🥺${PADDING}`;
 
 const columnifyOptions: ExtendedColumnifyOptions = {
   align: 'left',
   preserveNewLines: true,
   columns: ['content', 'name', 'description'],
   showHeaders: false,
-  columnSplitter: '   ',
+  columnSplitter: PADDING.repeat(Level.FIRST),
 };
 
 export class BundleStyleRequestBuilder extends StyleRequestBuilder {
@@ -23,14 +24,14 @@ export class BundleStyleRequestBuilder extends StyleRequestBuilder {
       isDim: true,
       content: `>   Executing tasks: ${data.tasksCompleted}/${data.tasksTotal} succeeded`,
       status: Status.PENDING,
-      level: 3,
+      level: Level.FIRST,
     };
 
     const archivingContent = {
       isDim: true,
       content: { data: [{ name: `Archiving bundle`, status: data.status }], config: columnifyOptions },
       status: data.status,
-      level: 3,
+      level: Level.FIRST,
     };
 
     const topLevelStatus = data.status;
@@ -42,12 +43,12 @@ export class BundleStyleRequestBuilder extends StyleRequestBuilder {
         const successed = images.filter((i) => i.status === Status.SUCCESS);
         const status = successed.length === images.length ? Status.SUCCESS : Status.PENDING;
         imagesContent = {
-          level: 6,
+          level: Level.SECOND,
           status,
           content: `${EOL}>   Loading images: ${successed.length}/${images.length} succeeded${EOL}`,
           isDim: true,
           subContent: {
-            level: 9,
+            level: Level.THIRD,
             status,
             content: {
               data: images.map((i) => ({ name: i.name, status: i.status, description: i.content !== undefined ? `[${i.content}]` : undefined })),
@@ -65,7 +66,7 @@ export class BundleStyleRequestBuilder extends StyleRequestBuilder {
         const status = successed.length === assets.length ? Status.SUCCESS : Status.PENDING;
         const data = [{ name: `Getting assets: ${successed.length}/${assets.length} succeeded`, status }];
         assetsContent = {
-          level: 6,
+          level: Level.SECOND,
           status: status,
           content: { data, config: columnifyOptions },
           subContent: imagesContent,
@@ -80,7 +81,7 @@ export class BundleStyleRequestBuilder extends StyleRequestBuilder {
         const status = successed.length === packages.length ? Status.SUCCESS : Status.PENDING;
         const data = [{ name: `Packaging helms: ${successed.length}/${packages.length} succeeded`, status }];
         packagesContent = {
-          level: 6,
+          level: Level.SECOND,
           status: status,
           content: { data, config: columnifyOptions },
           subContent: assetsContent ?? imagesContent,
@@ -88,7 +89,7 @@ export class BundleStyleRequestBuilder extends StyleRequestBuilder {
       }
 
       return {
-        level: 3,
+        level: Level.FIRST,
         content: { data: [{ name: repo.name, status: repo.status }], config: columnifyOptions },
         subContent: packagesContent ?? assetsContent ?? imagesContent,
         status: topLevelStatus,
@@ -97,9 +98,9 @@ export class BundleStyleRequestBuilder extends StyleRequestBuilder {
 
     let suffix: Title | undefined = undefined;
     if (data.status === Status.SUCCESS) {
-      suffix = { isBold: true, content: BUNDLE_SUCCESS_MESSAGE(data.output), status: data.status, level: 3 };
+      suffix = { isBold: true, content: BUNDLE_SUCCESS_MESSAGE(data.output), status: data.status, level: Level.FIRST };
     } else if (data.status === Status.FAILURE) {
-      suffix = { isBold: true, content: BUNDLE_FAILED_MESSAGE, status: data.status, level: 3 };
+      suffix = { isBold: true, content: BUNDLE_FAILED_MESSAGE, status: data.status, level: Level.FIRST };
     }
 
     return {

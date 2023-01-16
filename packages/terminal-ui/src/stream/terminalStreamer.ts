@@ -1,5 +1,6 @@
 import { EOL } from 'os';
 import * as readline from 'readline';
+import { EMPTY_LINE, PADDING } from '../style/util';
 
 const UP = -1;
 const LEFT = 0;
@@ -12,10 +13,10 @@ const clearStream = (stream: NodeJS.WriteStream, numberOfLines: number): void =>
   }
 };
 
-const writeToStream = (stream: NodeJS.WriteStream, lines: string[]): void => {
+const writeStream = (stream: NodeJS.WriteStream, lines: string[]): void => {
   for (const line of lines) {
-    if (line === '') {
-      stream.write(' ' + EOL);
+    if (line === EMPTY_LINE) {
+      stream.write(PADDING + EOL);
     } else {
       stream.write(line + EOL);
     }
@@ -26,12 +27,11 @@ export type StreamFunc = (content: string) => void;
 
 export const createTerminalStreamer = (stream: NodeJS.WriteStream): StreamFunc => {
   let lastNumOfLines = 0;
-  const clearAndWrite = (content: string): void => {
+
+  return (content: string): void => {
     clearStream(stream, lastNumOfLines);
     const lines = content.split(EOL);
     lastNumOfLines = lines.length;
-    writeToStream(stream, lines);
+    writeStream(stream, lines);
   };
-
-  return clearAndWrite;
 };
