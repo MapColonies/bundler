@@ -12,9 +12,16 @@ type GithubClientOptions = ConstructorParameters<typeof Octokit>[0];
 const DEFAULT_OPTIONS: GithubClientOptions = { baseUrl: GITHUB_API_URL };
 
 const filterRepositories = (repositories: GithubRepository[], filter: RepositoryFilter): GithubRepository[] => {
-  const { topics } = filter;
+  const { topics, archived } = filter;
+  let filtered: GithubRepository[] = repositories;
 
-  const filtered = repositories.filter((repo: GithubRepository) => repo.topics?.some((topic: string) => topics?.includes(topic)));
+  if (topics) {
+    filtered = repositories.filter((repo) => repo.topics?.some((topic) => topics.includes(topic)));
+  }
+
+  if (archived !== undefined) {
+    filtered = filtered.filter((repo) => repo.archived === archived);
+  }
 
   return filtered;
 };

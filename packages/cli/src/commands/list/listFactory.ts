@@ -44,7 +44,7 @@ export const listCommandFactory: FactoryFunction<CommandModule<GlobalArguments, 
 
     const githubClient = dependencyContainer.resolve<IGithubClient>(SERVICES.GITHUB_CLIENT);
 
-    const filter = topics ? { topics } : undefined;
+    const filter = topics ? { topics, archived: false } : { archived: false };
 
     logger.debug({ msg: 'executing command', command, args: { visibility, topics }, filter });
 
@@ -67,7 +67,7 @@ export const listCommandFactory: FactoryFunction<CommandModule<GlobalArguments, 
         renderer.current = request;
       }
 
-      // logger.debug({ msg: 'got repositories', count: repos.length });
+      // logger.debug({ msg: 'got repositories', count: filtered.length });
 
       dependencyContainer.register(EXIT_CODE, { useValue: ExitCodes.SUCCESS });
     } catch (error) {

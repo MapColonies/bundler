@@ -16,4 +16,5 @@ export interface RepositoryId {
 
 export interface RepositoryFilter {
   topics?: string[];
+  archived?: boolean;
 }
