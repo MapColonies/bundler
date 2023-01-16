@@ -1,9 +1,10 @@
 /* eslint-disable import/first */
 // this import must be called before the first import of tsyring
 import 'reflect-metadata';
+import { ExitCodes } from '@bundler/common';
 import { hideBin } from 'yargs/helpers';
 import { Logger } from '@map-colonies/js-logger';
-import { ExitCodes, EXIT_CODE, SERVICES } from './common/constants';
+import { EXIT_CODE, SERVICES } from './common/constants';
 import { getCli } from './cli';
 
 const [container, cli] = getCli();

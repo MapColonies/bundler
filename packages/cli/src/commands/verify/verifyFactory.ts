@@ -1,14 +1,13 @@
-/* eslint-disable @typescript-eslint/no-magic-numbers */
+import { ExitCodes, Status, VerifyEntity } from '@bundler/common';
 import { FactoryFunction } from 'tsyringe';
 import { Logger } from '@map-colonies/js-logger';
 import { IGithubClient } from '@bundler/github';
 import { CommandModule } from 'yargs';
+import { Renderer, createTerminalStreamer, VerifyStyleRequestBuilder as Builder } from '@bundler/terminal-ui';
 import { dockerVerify, helmVerify } from '@bundler/core';
 import { GlobalArguments } from '../../cliBuilderFactory';
-import { ExitCodes, EXIT_CODE, LifeCycle, SERVICES, Status } from '../../common/constants';
-import { oldCreateTerminalStreamer } from '../../ui/terminalStreamer';
-import { ExtendedColumnifyOptions, style } from '../../ui/styler';
-import { command, describe, NOT_VERIFIED_MESSAGE, PREFIX, VERIFIED_MESSAGE } from './constants';
+import { EXIT_CODE, SERVICES, TERMINAL_STREAM } from '../../common/constants';
+import { command, describe } from './constants';
 
 const promiseResult = async <T>(promise: Promise<T>): Promise<[undefined, T] | [unknown, undefined]> => {
   try {
@@ -19,27 +18,6 @@ const promiseResult = async <T>(promise: Promise<T>): Promise<[undefined, T] | [
   }
 };
 
-interface VerifyEntity {
-  name: string;
-  verification: Promise<void>;
-}
-
-const columnifyOptions: ExtendedColumnifyOptions = {
-  align: 'left',
-  preserveNewLines: true,
-  columns: ['content', 'name', 'reason'],
-  showHeaders: false,
-  columnSplitter: '   ',
-  config: { content: { align: 'center' }, reason: { maxWidth: 80 } },
-};
-
-export interface VerifyResult {
-  name: string;
-  status: Status;
-  content?: string;
-  reason?: Error;
-}
-
 export const verifyCommandFactory: FactoryFunction<CommandModule<GlobalArguments, GlobalArguments>> = (dependencyContainer) => {
   const logger = dependencyContainer.resolve<Logger>(SERVICES.LOGGER);
 
@@ -49,59 +27,46 @@ export const verifyCommandFactory: FactoryFunction<CommandModule<GlobalArguments
     logger.debug({ msg: 'executing command', command });
 
     try {
-      const entities: VerifyEntity[] = [
+      const verifications: VerifyEntity[] = [
         {
           name: 'docker',
           verification: dockerVerify(),
+          result: {
+            status: Status.PENDING,
+          },
         },
         {
           name: 'github',
           verification: githubClient.ping(),
+          result: {
+            status: Status.PENDING,
+          },
         },
         {
           name: 'helm',
           verification: helmVerify(),
+          result: {
+            status: Status.PENDING,
+          },
         },
       ];
 
-      const results: VerifyResult[] = entities.map((entity) => ({
-        name: entity.name,
-        status: Status.PENDING,
-      }));
-
-      let cycle = LifeCycle.PRE;
-
-      const getData = (): string => {
-        if (cycle === LifeCycle.PRE) {
-          const main = [{ level: 3, status: Status.PENDING, content: { data: results, config: columnifyOptions } }];
-          return style({ prefix: { content: PREFIX(command), isBold: true, status: Status.PENDING }, main });
-        }
-        const status = results.every((entity) => entity.status === Status.SUCCESS) ? Status.SUCCESS : Status.FAILURE;
-
-        const main = [{ level: 3, status, content: { data: results, config: columnifyOptions } }];
-        const message = status === Status.SUCCESS ? VERIFIED_MESSAGE : NOT_VERIFIED_MESSAGE;
-        return style({
-          prefix: { content: PREFIX(command), isBold: true, status },
-          suffix: { content: message, level: 3, isBold: true, status },
-          main,
-        });
-      };
-
-      oldCreateTerminalStreamer(process.stderr, getData);
+      const renderer = new Renderer(createTerminalStreamer(TERMINAL_STREAM));
+      const builder = new Builder();
+      renderer.current = builder.build(verifications);
 
       await Promise.allSettled(
-        entities.map(async (entity, index) => {
+        verifications.map(async (entity, index) => {
           await promiseResult(entity.verification).then(([error]) => {
             if (error === undefined) {
-              results[index] = { ...results[index], status: Status.SUCCESS };
+              verifications[index] = { ...verifications[index], result: { status: Status.SUCCESS } };
             } else {
-              results[index] = { ...results[index], status: Status.FAILURE, reason: error as Error };
+              verifications[index] = { ...verifications[index], result: { status: Status.FAILURE, reason: error as Error } };
             }
+            renderer.current = builder.build(verifications);
           });
         })
       );
-
-      cycle = LifeCycle.POST;
 
       dependencyContainer.register(EXIT_CODE, { useValue: ExitCodes.SUCCESS });
     } catch (error) {

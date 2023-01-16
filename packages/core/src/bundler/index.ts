@@ -1,6 +1,7 @@
 import { hostname } from 'os';
 import { mkdir, rm, writeFile } from 'fs/promises';
 import { basename, dirname, join } from 'path';
+import { Status } from '@bundler/common';
 import { nanoid } from 'nanoid';
 import { RepositoryId, IGithubClient, GithubClient } from '@bundler/github';
 import * as tar from 'tar';
@@ -27,7 +28,7 @@ import {
   TGZ_ARCHIVE_FORMAT,
   CHECKSUM_FILE,
 } from './constants';
-import { BundleStatus, Status } from './status';
+import { BundleStatus } from './status';
 import { BundleOutputTree, Manifest } from './manifest';
 import { ChecksumOutput, createChecksum } from './checksum/checksum';
 
@@ -41,7 +42,7 @@ interface BundlerEvents {
   statusUpdated: (status: BundleStatus) => void;
 }
 
-export class Bundler extends TypedEmitter<BundlerEvents>{
+export class Bundler extends TypedEmitter<BundlerEvents> {
   private readonly logger: ILogger | undefined;
   private readonly githubClient: IGithubClient;
   private readonly commander: Commander;

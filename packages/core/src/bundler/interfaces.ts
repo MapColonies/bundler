@@ -1,6 +1,6 @@
+import { Status } from '@bundler/common';
 import { IGithubClient, RepositoryId } from '@bundler/github';
 import { ILogger } from '../common/types';
-import { Status } from './status';
 
 export interface BaseOutput {
   id: string;

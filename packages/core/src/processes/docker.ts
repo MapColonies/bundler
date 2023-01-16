@@ -71,11 +71,3 @@ export const dockerVersion = async (args?: CommanderOptions): Promise<void> => {
     throw new Error(stderr.length > 0 ? stderr : `docker ${Command.VERSION} failed with exit code ${exitCode ?? 'null'}`);
   }
 };
-
-// export const dockerfileNameToKind = (name: string): ExternalKind | undefined => {
-//   if (name === DOCKER_FILE) {
-//     return ExternalKind.DOCKER_SERVICE;
-//   } else if (name === MIGRATIONS_DOCKER_FILE) {
-//     return ExternalKind.DOCKER_MIGRATION;
-//   }
-// };

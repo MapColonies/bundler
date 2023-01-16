@@ -1,17 +1,5 @@
+import { Statused } from '@bundler/common/src';
 import { TaskKind } from './interfaces';
-
-// TODO: common
-interface Statused {
-  status: Status;
-  content?: string;
-}
-
-// TODO: common
-export enum Status {
-  SUCCESS = 'SUCCESS',
-  PENDING = 'PENDING',
-  FAILURE = 'FAILURE',
-}
 
 export interface TaskStatus extends Statused {
   name: string;

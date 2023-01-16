@@ -1,6 +1,7 @@
+import { ExitCodes } from '@bundler/common';
 import { DependencyContainer } from 'tsyringe/dist/typings/types';
 import jsLogger from '@map-colonies/js-logger';
-import { SERVICES, CLI_BUILDER, EXIT_CODE, ExitCodes } from './common/constants';
+import { SERVICES, CLI_BUILDER, EXIT_CODE } from './common/constants';
 import { InjectionObject, registerDependencies } from './common/dependencyRegistration';
 import { cliBuilderFactory } from './cliBuilderFactory';
 import { bundleCommandFactory } from './commands/bundle/bundleFactory';

@@ -1,16 +1,14 @@
+import { ExitCodes } from '@bundler/common';
 import { Bundler, BundlerOptions, CleanupMode, BundleStatus } from '@bundler/core';
 import { IGithubClient, RepositoryId } from '@bundler/github';
 import { FactoryFunction } from 'tsyringe';
+import { Renderer, createTerminalStreamer, BundleStyleRequestBuilder as Builder } from '@bundler/terminal-ui';
 import { Logger } from '@map-colonies/js-logger';
 import { Arguments, Argv, CommandModule } from 'yargs';
-import { ExitCodes, EXIT_CODE, SERVICES } from '../../common/constants';
+import { EXIT_CODE, SERVICES, TERMINAL_STREAM } from '../../common/constants';
 import { GlobalArguments } from '../../cliBuilderFactory';
 import { checkWrapper } from '../../wrappers/check';
 import { coerceWrapper } from '../../wrappers/coerce';
-import { ExtendedColumnifyOptions } from '../../ui/styler';
-import { createTerminalStreamer } from '../../ui/terminalStreamer';
-import { convert } from '../../ui/converter';
-import { Renderer } from '../../ui/renderer';
 import { repoProvidedCheck } from './checks';
 import { repositoriesCoerce, repositoryCoerce } from './coerces';
 import { command, describe } from './constants';
@@ -23,14 +21,6 @@ interface BundleRequest {
   includeAssets: boolean;
   includeHelmPackage: boolean;
 }
-
-const columnifyOptions: ExtendedColumnifyOptions = {
-  align: 'left',
-  preserveNewLines: true,
-  columns: ['content', 'name', 'description'],
-  showHeaders: false,
-  columnSplitter: '   ',
-};
 
 export type BundleArguments = GlobalArguments & Required<Omit<BundlerOptions, 'logger' | 'githubClient'> & BundleRequest>;
 
@@ -123,9 +113,10 @@ export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments
 
     try {
       const bundler = new Bundler({ workdir, outputPath, cleanupMode, isDebugMode, verbose, githubClient });
-      const renderer = new Renderer(createTerminalStreamer(process.stderr));
+      const renderer = new Renderer(createTerminalStreamer(TERMINAL_STREAM));
+      const builder = new Builder();
       bundler.on('statusUpdated', (status: BundleStatus) => {
-        const request = convert(status);
+        const request = builder.build(status);
         renderer.current = request;
       });
 

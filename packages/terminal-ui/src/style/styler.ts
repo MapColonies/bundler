@@ -1,4 +1,5 @@
 import { EOL } from 'os';
+import { Status } from '@bundler/common';
 import chalk, { ChalkFunction } from 'chalk';
 import columnify, { GlobalOptions as ColumnifyOptions } from 'columnify';
 import { dots as spinner } from 'cli-spinners';
@@ -6,12 +7,6 @@ import { dots as spinner } from 'cli-spinners';
 let spinnerFrameIndex = 0;
 
 const PADDING = ' ';
-
-enum Status {
-  SUCCESS = 'SUCCESS',
-  PENDING = 'PENDING',
-  FAILURE = 'FAILURE',
-}
 
 interface Statused {
   status: Status;
@@ -67,7 +62,7 @@ interface StyleResult {
   suffix?: string;
 }
 
-const styleResultToString = (result: StyleResult): string => {
+const strigifyResult = (result: StyleResult): string => {
   const { prefix, main, suffix } = result;
   return `${prefix !== undefined ? `${EOL}${prefix}${EOL}` : ''}${main ?? ''}${suffix !== undefined ? `${EOL}${suffix}` : ''}`;
 };
@@ -172,5 +167,5 @@ export const style = (request: StyleRequest): string => {
     result.main += EOL;
   }
 
-  return styleResultToString(result);
+  return strigifyResult(result);
 };
