@@ -2,7 +2,7 @@ import yargs, { Argv, CommandModule } from 'yargs';
 import { FactoryFunction } from 'tsyringe';
 import { BUNDLE_COMMAND_FACTORY } from './commands/bundle/constants';
 import { LIST_COMMAND_FACTORY } from './commands/list/constants';
-import { githubRegistrationMiddlewareFactory } from './wrappers/middleware';
+import { githubRegistrationMiddlewareFactory, loggerRegistrationMiddlewareFactory } from './wrappers/middleware';
 import { VERIFY_COMMAND_FACTORY } from './commands/verify/constants';
 
 export interface GlobalArguments {
@@ -21,7 +21,9 @@ export const cliBuilderFactory: FactoryFunction<Argv> = (dependencyContainer) =>
     .help('h')
     .alias('h', 'help');
 
+  args.middleware(loggerRegistrationMiddlewareFactory(dependencyContainer));
   args.middleware(githubRegistrationMiddlewareFactory(dependencyContainer));
+
   args.command(dependencyContainer.resolve<CommandModule>(BUNDLE_COMMAND_FACTORY));
   args.command(dependencyContainer.resolve<CommandModule>(LIST_COMMAND_FACTORY));
   args.command(dependencyContainer.resolve<CommandModule>(VERIFY_COMMAND_FACTORY));

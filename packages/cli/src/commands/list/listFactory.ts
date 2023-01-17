@@ -21,8 +21,6 @@ export interface ListArguments extends GlobalArguments {
 }
 
 export const listCommandFactory: FactoryFunction<CommandModule<GlobalArguments, ListArguments>> = (dependencyContainer) => {
-  const logger = dependencyContainer.resolve<Logger>(SERVICES.LOGGER);
-
   const builder = (args: Argv<GlobalArguments>): Argv<ListArguments> => {
     args
       .option('visibility', {
@@ -34,7 +32,7 @@ export const listCommandFactory: FactoryFunction<CommandModule<GlobalArguments, 
         default: 'all' as RepositoryType,
       })
       .option('topics', { alias: 't', describe: 'filter by topics', array: true, type: 'string' })
-      .check(checkWrapper(visibilityTokenImplicationCheck, logger));
+      .check(checkWrapper(visibilityTokenImplicationCheck));
 
     return args as Argv<ListArguments>;
   };
@@ -42,11 +40,12 @@ export const listCommandFactory: FactoryFunction<CommandModule<GlobalArguments, 
   const handler = async (args: Arguments<ListArguments>): Promise<void> => {
     const { visibility, topics } = args;
 
+    const logger = dependencyContainer.resolve<Logger>(SERVICES.LOGGER);
     const githubClient = dependencyContainer.resolve<IGithubClient>(SERVICES.GITHUB_CLIENT);
 
     const filter = topics ? { topics, archived: false } : { archived: false };
 
-    logger.debug({ msg: 'executing command', command, args: { visibility, topics }, filter });
+    logger.debug({ msg: 'blabla', command, args: { visibility, topics }, filter });
 
     try {
       const renderer = new Renderer(createTerminalStreamer(TERMINAL_STREAM));
@@ -57,17 +56,17 @@ export const listCommandFactory: FactoryFunction<CommandModule<GlobalArguments, 
 
       for await (const repos of githubClient.listRepositoriesGenerator(GITHUB_ORG, visibility, filter)) {
         if (repos.length === 0) {
-          const request = builder.build({ list: filtered, status: Status.SUCCESS });
-          renderer.current = request;
+          // const request = builder.build({ list: filtered, status: Status.SUCCESS });
+          // renderer.current = request;
           break;
         }
 
         filtered.push(...repos.map((r) => ({ name: r.name, language: r.language, topics: r.topics, status: Status.PENDING })));
-        const request = builder.build({ list: filtered, status: Status.PENDING });
-        renderer.current = request;
+        // const request = builder.build({ list: filtered, status: Status.PENDING });
+        // renderer.current = request;
       }
 
-      // logger.debug({ msg: 'got repositories', count: filtered.length });
+      logger.debug({ msg: 'got repositories', count: filtered.length });
 
       dependencyContainer.register(EXIT_CODE, { useValue: ExitCodes.SUCCESS });
     } catch (error) {

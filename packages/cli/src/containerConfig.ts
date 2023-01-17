@@ -1,3 +1,4 @@
+import pino, { destination } from 'pino';
 import { ExitCodes } from '@bundler/common';
 import { DependencyContainer } from 'tsyringe/dist/typings/types';
 import jsLogger from '@map-colonies/js-logger';
@@ -17,10 +18,14 @@ export interface RegisterOptions {
 }
 
 export const registerExternalValues = (options?: RegisterOptions): DependencyContainer => {
-  const logger = jsLogger({ level: 'debug', prettyPrint: true });
+  // const pinoLogger = pino({
+  //   level: 'info',
+  //   transport:
+  //     { target: 'pino/file', options: { destination: '/tmp/temp/log/pino-log', append: false, mkdir: true }, level: 'info' },
+  // });
 
   const dependencies: InjectionObject<unknown>[] = [
-    { token: SERVICES.LOGGER, provider: { useValue: logger } },
+    // { token: SERVICES.LOGGER, provider: { useValue: pinoLogger } },
     { token: CLI_BUILDER, provider: { useFactory: cliBuilderFactory } },
     { token: BUNDLE_COMMAND_FACTORY, provider: { useFactory: bundleCommandFactory } },
     { token: LIST_COMMAND_FACTORY, provider: { useFactory: listCommandFactory } },
