@@ -1,6 +1,6 @@
 import { ExitCodes, Status, VerifyEntity } from '@bundler/common';
 import { FactoryFunction } from 'tsyringe';
-import { Logger } from '@map-colonies/js-logger';
+import { Logger } from 'pino';
 import { IGithubClient } from '@bundler/github';
 import { CommandModule } from 'yargs';
 import { Renderer, createTerminalStreamer, VerifyStyleRequestBuilder as Builder } from '@bundler/terminal-ui';
@@ -19,9 +19,10 @@ const promiseResult = async <T>(promise: Promise<T>): Promise<[undefined, T] | [
 };
 
 export const verifyCommandFactory: FactoryFunction<CommandModule<GlobalArguments, GlobalArguments>> = (dependencyContainer) => {
-  const logger = dependencyContainer.resolve<Logger>(SERVICES.LOGGER);
+  const handler = async (args: GlobalArguments): Promise<void> => {
+    const { verbose } = args;
 
-  const handler = async (): Promise<void> => {
+    const logger = dependencyContainer.resolve<Logger>(SERVICES.LOGGER);
     const githubClient = dependencyContainer.resolve<IGithubClient>(SERVICES.GITHUB_CLIENT);
 
     logger.debug({ msg: 'executing command', command });
@@ -51,9 +52,14 @@ export const verifyCommandFactory: FactoryFunction<CommandModule<GlobalArguments
         },
       ];
 
-      const renderer = new Renderer(createTerminalStreamer(TERMINAL_STREAM));
-      const builder = new Builder();
-      renderer.current = builder.build(verifications);
+      let renderer: Renderer | undefined;
+      let builder: Builder | undefined;
+
+      if (!verbose) {
+        renderer = new Renderer(createTerminalStreamer(TERMINAL_STREAM));
+        builder = new Builder();
+        renderer.current = builder.build(verifications);
+      }
 
       await Promise.allSettled(
         verifications.map(async (entity, index) => {
@@ -63,7 +69,7 @@ export const verifyCommandFactory: FactoryFunction<CommandModule<GlobalArguments
             } else {
               verifications[index] = { ...verifications[index], result: { status: Status.FAILURE, reason: error as Error } };
             }
-            renderer.current = builder.build(verifications);
+            (renderer as Renderer).current = (builder as Builder).build(verifications);
           });
         })
       );

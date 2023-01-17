@@ -3,22 +3,33 @@
 import 'reflect-metadata';
 import { ExitCodes } from '@bundler/common';
 import { hideBin } from 'yargs/helpers';
-import { Logger } from '@map-colonies/js-logger';
-import { EXIT_CODE, SERVICES } from './common/constants';
+import { Logger } from 'pino';
+import { DependencyContainer } from 'tsyringe';
+import { EXIT_CODE, ON_SIGNAL, SERVICES } from './common/constants';
 import { getCli } from './cli';
 
-const [container, cli] = getCli();
+let depContainer: DependencyContainer | undefined;
 
-void cli
-  .parseAsync(hideBin(process.argv))
+void getCli()
+  .then(async ([container, cli]) => {
+    depContainer = container;
+    await cli.parseAsync(hideBin(process.argv));
+
+    const exitCode = depContainer.isRegistered(EXIT_CODE) ? depContainer.resolve<number>(EXIT_CODE) : ExitCodes.GENERAL_ERROR;
+    if (exitCode === ExitCodes.SUCCESS && depContainer.isRegistered(ON_SIGNAL)) {
+      const shutDown: () => Promise<void> = depContainer.resolve(ON_SIGNAL);
+      await shutDown();
+    }
+  })
   .catch((error: Error) => {
-    const errorLogger = container.isRegistered(SERVICES.LOGGER)
-      ? container.resolve<Logger>(SERVICES.LOGGER).error.bind(container.resolve<Logger>(SERVICES.LOGGER))
-      : console.error;
+    const errorLogger =
+      depContainer?.isRegistered(SERVICES.LOGGER) === true
+        ? depContainer.resolve<Logger>(SERVICES.LOGGER).error.bind(depContainer.resolve<Logger>(SERVICES.LOGGER))
+        : console.error;
+
     errorLogger({ msg: 'failed to initialize the cli', err: error });
   })
   .finally(() => {
-    // TODO: improve exit code logic
-    const exitCode = container.isRegistered(EXIT_CODE) ? container.resolve<number>(EXIT_CODE) : ExitCodes.GENERAL_ERROR;
+    const exitCode = depContainer?.isRegistered(EXIT_CODE) === true ? depContainer.resolve<number>(EXIT_CODE) : ExitCodes.GENERAL_ERROR;
     process.exit(exitCode);
   });

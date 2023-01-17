@@ -3,12 +3,13 @@ import { Bundler, BundlerOptions, CleanupMode, BundleStatus } from '@bundler/cor
 import { IGithubClient, RepositoryId } from '@bundler/github';
 import { FactoryFunction } from 'tsyringe';
 import { Renderer, createTerminalStreamer, BundleStyleRequestBuilder as Builder } from '@bundler/terminal-ui';
-import { Logger } from '@map-colonies/js-logger';
+import { Logger } from 'pino';
 import { Arguments, Argv, CommandModule } from 'yargs';
 import { EXIT_CODE, SERVICES, TERMINAL_STREAM } from '../../common/constants';
 import { GlobalArguments } from '../../cliBuilderFactory';
 import { checkWrapper } from '../../wrappers/check';
 import { coerceWrapper } from '../../wrappers/coerce';
+import { IConfig } from '../../config/configStore';
 import { repoProvidedCheck } from './checks';
 import { repositoriesCoerce, repositoryCoerce } from './coerces';
 import { command, describe } from './constants';
@@ -26,6 +27,7 @@ export type BundleArguments = GlobalArguments & Required<Omit<BundlerOptions, 'l
 
 export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments, BundleArguments>> = (dependencyContainer) => {
   const logger = dependencyContainer.resolve<Logger>(SERVICES.LOGGER);
+  const configStore = dependencyContainer.resolve<IConfig>(SERVICES.CONFIG);
 
   const builder = (args: Argv<GlobalArguments>): Argv<BundleArguments> => {
     args
@@ -34,7 +36,7 @@ export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments
         describe: 'the bundler working directory',
         nargs: 1,
         type: 'string',
-        demandOption: true,
+        default: configStore.get<string>('workdir'),
       })
       .option('outputPath', {
         alias: 'o',
@@ -104,21 +106,24 @@ export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments
       includeHelmPackage,
     } = args;
 
+    const logger = dependencyContainer.resolve<Logger>(SERVICES.LOGGER);
     const githubClient = dependencyContainer.resolve<IGithubClient>(SERVICES.GITHUB_CLIENT);
 
     const reposInput = (repository as RepositoryId | undefined) ? [repository] : repositories;
     const bundleRequest = reposInput.map((repoId) => ({ id: repoId, buildImageLocally, includeMigrations, includeAssets, includeHelmPackage }));
 
-    logger.debug({ msg: 'executing command', command, args: { workdir, outputPath, cleanupMode, isDebugMode, verbose }, payload: bundleRequest });
+    logger.info({ msg: 'executing command', command, args: { workdir, outputPath, cleanupMode, isDebugMode, verbose }, payload: bundleRequest });
 
     try {
-      const bundler = new Bundler({ workdir, outputPath, cleanupMode, isDebugMode, verbose, githubClient });
-      const renderer = new Renderer(createTerminalStreamer(TERMINAL_STREAM));
-      const builder = new Builder();
-      bundler.on('statusUpdated', (status: BundleStatus) => {
-        const request = builder.build(status);
-        renderer.current = request;
-      });
+      const bundler = new Bundler({ workdir, outputPath, cleanupMode, isDebugMode, verbose, githubClient, logger });
+      if (!verbose) {
+        const renderer = new Renderer(createTerminalStreamer(TERMINAL_STREAM));
+        const builder = new Builder();
+        bundler.on('statusUpdated', (status: BundleStatus) => {
+          const request = builder.build(status);
+          renderer.current = request;
+        });
+      }
 
       await bundler.bundle(bundleRequest);
 
