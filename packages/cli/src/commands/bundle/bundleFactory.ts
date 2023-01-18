@@ -1,18 +1,18 @@
-import { ExitCodes } from '@bundler/common';
 import { Bundler, BundlerOptions, CleanupMode, BundleStatus } from '@bundler/core';
 import { IGithubClient, RepositoryId } from '@bundler/github';
+import { ExitCodes } from '@bundler/common';
 import { FactoryFunction } from 'tsyringe';
 import { Renderer, createTerminalStreamer, BundleStyleRequestBuilder as Builder } from '@bundler/terminal-ui';
 import { Logger } from 'pino';
 import { Arguments, Argv, CommandModule } from 'yargs';
-import { EXIT_CODE, SERVICES, TERMINAL_STREAM } from '../../common/constants';
+import { SERVICES, TERMINAL_STREAM } from '../../common/constants';
 import { GlobalArguments } from '../../cliBuilderFactory';
 import { checkWrapper } from '../../wrappers/check';
 import { coerceWrapper } from '../../wrappers/coerce';
 import { IConfig } from '../../config/configStore';
 import { repoProvidedCheck } from './checks';
 import { repositoriesCoerce, repositoryCoerce } from './coerces';
-import { command, describe } from './constants';
+import { command, describe, EXAMPLES } from './constants';
 
 interface BundleRequest {
   repository?: RepositoryId;
@@ -57,36 +57,42 @@ export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments
       .option('buildImageLocally', {
         alias: ['l', 'build-image-locally'],
         describe: 'build image(s) locally',
-        nargs: 1,
         type: 'boolean',
         default: false,
       })
       .option('includeMigrations', {
         alias: ['m', 'include-migrations'],
         describe: 'include the migrations image of given repository',
-        nargs: 1,
         type: 'boolean',
         default: false,
       })
       .option('includeAssets', {
         alias: ['a', 'include-assets'],
         describe: 'include the release assets of given repository',
-        nargs: 1,
         type: 'boolean',
         default: false,
       })
       .option('includeHelmPackage', {
-        alias: ['hp', 'include-helm-package'],
+        alias: ['H', 'include-helm-package'],
         describe: 'include the packages helm chart of given repository',
-        nargs: 1,
         type: 'boolean',
         default: false,
       })
-      .option('repository', { alias: 'repo', describe: 'the repository to bundle', nargs: 1, type: 'string', conflicts: ['repositories'] })
-      .option('repositories', { alias: 'repos', describe: 'the repositories to bundle', array: true, type: 'string', conflicts: ['repository'] })
+      .option('repository', { alias: ['r', 'repo'], describe: 'the repository to bundle', nargs: 1, type: 'string', conflicts: ['repositories'] })
+      .option('repositories', {
+        alias: ['R', 'repos'],
+        describe: 'the repositories to bundle',
+        array: true,
+        type: 'string',
+        conflicts: ['repository'],
+      })
       .check(checkWrapper(repoProvidedCheck, logger))
       .coerce('repository', coerceWrapper(repositoryCoerce, logger))
       .coerce('repositories', coerceWrapper(repositoriesCoerce, logger));
+
+    for (const example of EXAMPLES) {
+      args.example(example.command, example.description);
+    }
 
     return args as Argv<BundleArguments>;
   };
@@ -114,24 +120,20 @@ export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments
 
     logger.info({ msg: 'executing command', command, args: { workdir, outputPath, cleanupMode, isDebugMode, verbose }, payload: bundleRequest });
 
-    try {
-      const bundler = new Bundler({ workdir, outputPath, cleanupMode, isDebugMode, verbose, githubClient, logger });
-      if (!verbose) {
-        const renderer = new Renderer(createTerminalStreamer(TERMINAL_STREAM));
-        const builder = new Builder();
-        bundler.on('statusUpdated', (status: BundleStatus) => {
-          const request = builder.build(status);
-          renderer.current = request;
-        });
-      }
+    const bundler = new Bundler({ workdir, outputPath, cleanupMode, isDebugMode, verbose, githubClient, logger });
 
-      await bundler.bundle(bundleRequest);
-
-      dependencyContainer.register(EXIT_CODE, { useValue: ExitCodes.SUCCESS });
-    } catch (error) {
-      dependencyContainer.register(EXIT_CODE, { useValue: ExitCodes.GENERAL_ERROR });
-      logger.error({ err: error as Error, msg: 'an error occurred while executing command', command, exitCode: ExitCodes.GENERAL_ERROR });
+    if (!verbose) {
+      const renderer = new Renderer(createTerminalStreamer(TERMINAL_STREAM));
+      const builder = new Builder();
+      bundler.on('statusUpdated', (status: BundleStatus) => {
+        const request = builder.build(status);
+        renderer.current = request;
+      });
     }
+
+    await bundler.bundle(bundleRequest);
+
+    process.exitCode = ExitCodes.SUCCESS;
   };
 
   return {

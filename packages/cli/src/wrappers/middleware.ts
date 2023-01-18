@@ -7,6 +7,7 @@ import { GlobalArguments } from '../cliBuilderFactory';
 import { SERVICES } from '../common/constants';
 import { registerDependencies } from '../common/dependencyRegistration';
 import { IConfig } from '../config/configStore';
+import { LogTarget, VERBOSE_LOG_LEVEL } from '../common/logger';
 
 type RegisterOnContainerMiddlewareFactory<T> = (container: DependencyContainer) => MiddlewareFunction<T>;
 
@@ -35,7 +36,7 @@ export const githubRegistrationMiddlewareFactory: RegisterOnContainerMiddlewareF
   return middleware;
 };
 
-export const loggerRegistrationMiddlewareFactory: RegisterOnContainerMiddlewareFactory<GlobalArguments> = (dependencyContainer) => {
+export const verboseLoggerRegistrationMiddlewareFactory: RegisterOnContainerMiddlewareFactory<GlobalArguments> = (dependencyContainer) => {
   const middleware = (args: Arguments<GlobalArguments>): void => {
     const { verbose } = args;
 
@@ -46,13 +47,16 @@ export const loggerRegistrationMiddlewareFactory: RegisterOnContainerMiddlewareF
     const configStore = dependencyContainer.resolve<IConfig>(SERVICES.CONFIG);
 
     // TODO: log level formatter
-    const level = 'debug';
     const logger = pino({
-      level,
+      level: VERBOSE_LOG_LEVEL,
       transport: {
         targets: [
-          { target: 'pino/file', options: { destination: configStore.get<string>('logPath'), append: true, mkdir: true }, level },
-          { target: 'pino-pretty', options: { destination: 1 }, level },
+          {
+            target: LogTarget.FILE,
+            options: { destination: configStore.get<string>('logPath'), mkdir: true, append: true },
+            level: VERBOSE_LOG_LEVEL,
+          },
+          { target: LogTarget.TERMINAL, options: { destination: 1 }, level: VERBOSE_LOG_LEVEL },
         ],
       },
     });

@@ -1,9 +1,15 @@
-import yargs, { Argv, CommandModule } from 'yargs';
+import { EOL } from 'os';
+import yargs, { Argv, CommandModule, Options } from 'yargs';
 import { FactoryFunction } from 'tsyringe';
+import { ExitCodes } from '@bundler/common';
+import { Logger } from 'pino';
+import chalk from 'chalk';
 import { BUNDLE_COMMAND_FACTORY } from './commands/bundle/constants';
 import { LIST_COMMAND_FACTORY } from './commands/list/constants';
-import { githubRegistrationMiddlewareFactory, loggerRegistrationMiddlewareFactory } from './wrappers/middleware';
+import { githubRegistrationMiddlewareFactory, verboseLoggerRegistrationMiddlewareFactory } from './wrappers/middleware';
 import { VERIFY_COMMAND_FACTORY } from './commands/verify/constants';
+import { SERVICES, TERMINAL_STREAM } from './common/constants';
+import { IConfig } from './config/configStore';
 
 export interface GlobalArguments {
   verbose: boolean;
@@ -16,12 +22,31 @@ export const cliBuilderFactory: FactoryFunction<Argv> = (dependencyContainer) =>
     .usage('Usage: $0 <command> [options]')
     .demandCommand(1, 'please provide a command')
     .recommendCommands()
-    .option('verbose', { alias: 'v', describe: 'cli verbosity', nargs: 1, type: 'boolean', default: false })
-    .option('token', { alias: 'tkn', describe: 'github access token', nargs: 1, type: 'string' })
+    .option('verbose', { alias: 'v', describe: 'cli verbosity', type: 'boolean', default: false })
+    .option('token', { alias: 't', describe: 'github access token', nargs: 1, type: 'string' })
+    .group(['verbose', 'token', 'help', 'version'], 'Global Options:')
     .help('h')
-    .alias('h', 'help');
+    .alias('h', 'help')
+    .fail((msg, err) => {
+      args.showHelp('error');
 
-  args.middleware(loggerRegistrationMiddlewareFactory(dependencyContainer));
+      const logger = dependencyContainer.resolve<Logger>(SERVICES.LOGGER);
+      const configStore = dependencyContainer.resolve<IConfig>(SERVICES.CONFIG);
+
+      if (msg) {
+        TERMINAL_STREAM.write(`${msg}${EOL}`);
+      } else if (!logger.isLevelEnabled('debug')) {
+        console.error(err);
+      }
+
+      logger.error({ err, msg: 'an error occurred while executing command', yargsMsg: msg, exitCode: ExitCodes.GENERAL_ERROR });
+
+      TERMINAL_STREAM.write(chalk.red(`${EOL}the complete log of this run is located in: ${configStore.get<string>('logPath')}${EOL}${EOL}`));
+
+      process.exitCode = ExitCodes.GENERAL_ERROR;
+    });
+
+  args.middleware(verboseLoggerRegistrationMiddlewareFactory(dependencyContainer));
   args.middleware(githubRegistrationMiddlewareFactory(dependencyContainer));
 
   args.command(dependencyContainer.resolve<CommandModule>(BUNDLE_COMMAND_FACTORY));

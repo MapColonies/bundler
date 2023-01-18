@@ -6,7 +6,7 @@ import { GithubRepository, RepositoryType, IGithubClient } from '@bundler/github
 import { GITHUB_ORG } from '@bundler/core';
 import { Arguments, Argv, CommandModule } from 'yargs';
 import { GlobalArguments } from '../../cliBuilderFactory';
-import { EXIT_CODE, SERVICES, TERMINAL_STREAM } from '../../common/constants';
+import { SERVICES, TERMINAL_STREAM } from '../../common/constants';
 import { checkWrapper } from '../../wrappers/check';
 import { command, describe } from './constants';
 import { visibilityTokenImplicationCheck } from './checks';
@@ -26,15 +26,16 @@ export const listCommandFactory: FactoryFunction<CommandModule<GlobalArguments, 
   const builder = (args: Argv<GlobalArguments>): Argv<ListArguments> => {
     args
       .option('visibility', {
-        alias: 'vis',
+        alias: 'V',
         describe: 'filter by repo visibility',
         choices: ['all', 'public', 'private'] as RepositoryType[],
         nargs: 1,
         type: 'string',
         default: 'all' as RepositoryType,
       })
-      .option('topics', { alias: 't', describe: 'filter by topics', array: true, type: 'string' })
-      .check(checkWrapper(visibilityTokenImplicationCheck(dependencyContainer), logger));
+      .option('topics', { alias: 'T', describe: 'filter by topics', array: true, type: 'string' })
+      .check(checkWrapper(visibilityTokenImplicationCheck(dependencyContainer), logger))
+      .example('$0 list -V public -T javascript docker helm', '>>  lists public repositories from the given topics');
 
     return args as Argv<ListArguments>;
   };
@@ -49,39 +50,34 @@ export const listCommandFactory: FactoryFunction<CommandModule<GlobalArguments, 
 
     logger.info({ msg: 'executing command', command, args: { visibility, topics }, filter });
 
-    try {
-      let renderer: Renderer | undefined;
-      let builder: Builder | undefined;
+    let renderer: Renderer | undefined;
+    let builder: Builder | undefined;
 
-      if (!verbose) {
-        const renderer = new Renderer(createTerminalStreamer(TERMINAL_STREAM));
-        const builder = new Builder();
-        renderer.current = builder.build({ list: [], status: Status.PENDING });
-      }
-
-      const filtered: Listed[] = [];
-
-      for await (const repos of githubClient.listRepositoriesGenerator(GITHUB_ORG, visibility, filter)) {
-        if (repos.length === 0) {
-          if (!verbose) {
-            (renderer as Renderer).current = (builder as Builder).build({ list: filtered, status: Status.SUCCESS });
-          }
-          break;
-        }
-
-        filtered.push(...repos.map((r) => ({ name: r.name, language: r.language, topics: r.topics, status: Status.PENDING })));
-        if (!verbose) {
-          (renderer as Renderer).current = (builder as Builder).build({ list: filtered, status: Status.PENDING });
-        }
-      }
-
-      logger.debug({ msg: 'got repositories', count: filtered.length });
-
-      dependencyContainer.register(EXIT_CODE, { useValue: ExitCodes.SUCCESS });
-    } catch (error) {
-      dependencyContainer.register(EXIT_CODE, { useValue: ExitCodes.GENERAL_ERROR });
-      logger.error({ err: error as Error, msg: 'an error occurred while executing command', command, exitCode: ExitCodes.GENERAL_ERROR });
+    if (!verbose) {
+      renderer = new Renderer(createTerminalStreamer(TERMINAL_STREAM));
+      builder = new Builder();
+      renderer.current = builder.build({ list: [], status: Status.PENDING });
     }
+
+    const filtered: Listed[] = [];
+
+    for await (const repos of githubClient.listRepositoriesGenerator(GITHUB_ORG, visibility, filter)) {
+      if (repos.length === 0) {
+        if (!verbose) {
+          (renderer as Renderer).current = (builder as Builder).build({ list: filtered, status: Status.SUCCESS });
+        }
+        break;
+      }
+
+      filtered.push(...repos.map((r) => ({ name: r.name, language: r.language, topics: r.topics, status: Status.PENDING })));
+      if (!verbose) {
+        (renderer as Renderer).current = (builder as Builder).build({ list: filtered, status: Status.PENDING });
+      }
+    }
+
+    logger.debug({ msg: 'got repositories', filter, count: filtered.length, repositories: filtered });
+
+    process.exitCode = ExitCodes.SUCCESS;
   };
 
   return {

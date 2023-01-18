@@ -38,6 +38,7 @@
     "@bundler/terminal-ui": "*",
     "@map-colonies/cleanup-registry": "^1.1.0",
     "@map-colonies/read-pkg": "0.0.1",
+    "chalk": "^4.1.2",
     "lodash": "^4.17.21",
     "pino": "^8.8.0",
     "pino-pretty": "^9.1.1",
