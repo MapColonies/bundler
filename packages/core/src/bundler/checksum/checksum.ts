@@ -1,5 +1,5 @@
-import { createHash } from 'crypto';
-import { readFile } from 'fs/promises';
+import { createHash, Hash } from 'crypto';
+import { createReadStream, ReadStream } from 'fs';
 import { DEFAULT_CHECKSUM_ALGORITHM } from '../constants';
 import { BaseOutput } from '../interfaces';
 
@@ -8,20 +8,26 @@ interface Checksum {
   algorithm: string;
 }
 
-const hashData = (data: Buffer, algorithm: string): string => {
-  return createHash(algorithm).update(data).digest('hex');
-};
+const hashStream = async (stream: ReadStream, hash: Hash): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    stream.on('data', (chunk) => hash.update(chunk));
+    stream.on('error', reject);
+    stream.on('end', () => resolve(hash.digest('hex')));
+  });
+}
 
 export interface ChecksumOutput extends BaseOutput {
   checksum: Checksum;
 }
 
-export const createChecksum = async (path: string): Promise<Checksum> => {
-  const buffer = await readFile(path);
-  const hash = hashData(buffer, DEFAULT_CHECKSUM_ALGORITHM);
+export const createChecksum = async (path: string, algorithm = DEFAULT_CHECKSUM_ALGORITHM): Promise<Checksum> => {
+  const hash = createHash(algorithm);
+  const stream = createReadStream(path);
+
+  const hashResult = await hashStream(stream, hash);
 
   return {
-    algorithm: DEFAULT_CHECKSUM_ALGORITHM,
-    hash,
+    algorithm,
+    hash: hashResult,
   };
 };
