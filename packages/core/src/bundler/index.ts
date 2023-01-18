@@ -63,6 +63,8 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
 
     this.commander.on('buildCompleted', this.onBuildCompleted.bind(this));
     this.commander.on('pullCompleted', this.onPullCompleted.bind(this));
+
+    this.logger?.debug({ msg: 'bundler initialized', config });
   }
 
   public get status(): BundleStatus {
@@ -393,6 +395,7 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
 
     const repo = this.taskIdToRepositoryLookup(downloadId);
     this.patchTask(repo, { id: downloadId, status: Status.SUCCESS, stage: undefined });
+    repo.completed++;
     this.tasksCompleted++;
   }
 
