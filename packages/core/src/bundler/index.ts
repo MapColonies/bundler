@@ -28,7 +28,7 @@ import {
   TGZ_ARCHIVE_FORMAT,
   CHECKSUM_FILE,
 } from './constants';
-import { BundleStatus } from './status';
+import { BundleStatus, BundlerStage } from './status';
 import { BundleOutputTree, Manifest } from './manifest';
 import { ChecksumOutput, createChecksum } from './checksum/checksum';
 
@@ -49,7 +49,7 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
   private readonly repositoryProfiles: RepositoryProfile[] = [];
   private tasksTotal = 0;
   private tasksCompleted = 0;
-  private statusRes: Status = Status.PENDING;
+  private stage: BundlerStage = BundlerStage.INIT;
   private statusCache: BundleStatus | undefined;
   private eventOccurred = false;
 
@@ -83,7 +83,7 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
       repositories: repos,
       allTasksCompleted: this.allTasksCompleted,
       output: this.config.outputPath,
-      status: this.statusRes,
+      stage: this.stage,
       tasksCompleted: this.tasksCompleted,
       tasksTotal: this.tasksTotal,
     };
@@ -106,6 +106,8 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
     if (this.allTasksCompleted) {
       return this.createOutputs();
     }
+
+    this.emitStatusUpdated(BundlerStage.EXECUTION);
 
     const promisifyTasksChain = new Promise((resolve, reject) => {
       this.commander.on('saveCompleted', async (image) => {
@@ -159,9 +161,7 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
       assetsDir = { path: join(repoWorkdir.path, BundleDirs.ASSETS), shouldMake: true, shouldRemove: false };
     }
 
-    this.eventOccurred = true;
-    this.emit('statusUpdated', this.status);
-    this.logger?.debug({ msg: 'status updated', status: this.status });
+    this.emitStatusUpdated();
 
     return {
       ...repository,
@@ -252,9 +252,7 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
       }
 
       repo.profiled = true;
-      this.eventOccurred = true;
-      this.emit('statusUpdated', this.status);
-      this.logger?.debug({ msg: 'status updated', status: this.status });
+      this.emitStatusUpdated();
     }
   }
 
@@ -338,9 +336,7 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
   private async onBuildCompleted(image: Image): Promise<void> {
     this.logger?.info({ bundleId: this.bundleId, msg: 'buildCompleted', image });
 
-    this.eventOccurred = true;
-    this.emit('statusUpdated', this.status);
-    this.logger?.debug({ msg: 'status updated', status: this.status });
+    this.emitStatusUpdated();
 
     const repo = this.taskIdToRepositoryLookup(image.id);
     this.patchTask(repo, { id: image.id, stage: TaskStage.SAVING });
@@ -351,9 +347,7 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
   private async onPullCompleted(image: Image): Promise<void> {
     this.logger?.info({ bundleId: this.bundleId, msg: 'pullCompleted', image });
 
-    this.eventOccurred = true;
-    this.emit('statusUpdated', this.status);
-    this.logger?.debug({ msg: 'status updated', status: this.status });
+    this.emitStatusUpdated();
 
     const repo = this.taskIdToRepositoryLookup(image.id);
     this.patchTask(repo, { id: image.id, stage: TaskStage.SAVING });
@@ -371,9 +365,7 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
   private async onPackageCompleted(packageId: string): Promise<void> {
     this.logger?.info({ bundleId: this.bundleId, msg: 'packageCompleted', packageId });
 
-    this.eventOccurred = true;
-    this.emit('statusUpdated', this.status);
-    this.logger?.debug({ msg: 'status updated', status: this.status });
+    this.emitStatusUpdated();
 
     const repo = this.taskIdToRepositoryLookup(packageId);
     this.patchTask(repo, { id: packageId, status: Status.SUCCESS, stage: undefined });
@@ -389,9 +381,7 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
   private onDownloadCompleted(downloadId: string): void {
     this.logger?.info({ bundleId: this.bundleId, msg: 'downloadCompleted', downloadId });
 
-    this.eventOccurred = true;
-    this.emit('statusUpdated', this.status);
-    this.logger?.debug({ msg: 'status updated', status: this.status });
+    this.emitStatusUpdated();
 
     const repo = this.taskIdToRepositoryLookup(downloadId);
     this.patchTask(repo, { id: downloadId, status: Status.SUCCESS, stage: undefined });
@@ -402,9 +392,7 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
   private async onSaveCompleted(image: Image): Promise<void> {
     this.logger?.info({ bundleId: this.bundleId, msg: 'saveCompleted', image });
 
-    this.eventOccurred = true;
-    this.emit('statusUpdated', this.status);
-    this.logger?.debug({ msg: 'status updated', status: this.status });
+    this.emitStatusUpdated();
 
     const repo = this.taskIdToRepositoryLookup(image.id);
     this.patchTask(repo, { id: image.id, status: Status.SUCCESS, stage: undefined });
@@ -420,10 +408,7 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
   private async onCommandFailed(failedObj: unknown, error: unknown, message?: string): Promise<void> {
     this.logger?.info({ bundleId: this.bundleId, msg: 'commandFailed', failedObj, error, message });
 
-    this.statusRes = Status.FAILURE;
-    this.eventOccurred = true;
-    this.emit('statusUpdated', this.status);
-    this.logger?.debug({ msg: 'status updated', status: this.status });
+    this.emitStatusUpdated(BundlerStage.FAILURE);
 
     this.commander.terminate();
     await this.postBundleCleanup();
@@ -442,9 +427,7 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
   }
 
   private async createOutputs(): Promise<void> {
-    this.eventOccurred = true;
-    this.emit('statusUpdated', this.status);
-    this.logger?.debug({ msg: 'status updated', status: this.status });
+    this.emitStatusUpdated(BundlerStage.ARCHIVE);
 
     if (this.config.cleanupMode === 'post') {
       await this.preBundleCleanup();
@@ -454,6 +437,8 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
     await writeFile(join(this.config.workdir, this.bundleId, MANIFEST_FILE), dump(manifest));
 
     await this.createBundle();
+
+    this.emitStatusUpdated(BundlerStage.CHECKSUM);
 
     const checksum = await createChecksum(this.config.outputPath);
     const checksumOutput: ChecksumOutput = {
@@ -469,10 +454,7 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
       await this.postBundleCleanup();
     }
 
-    this.statusRes = Status.SUCCESS;
-    this.eventOccurred = true;
-    this.emit('statusUpdated', this.status);
-    this.logger?.debug({ msg: 'status updated', status: this.status });
+    this.emitStatusUpdated(BundlerStage.DONE);
   }
 
   private createManifest(): Manifest {
@@ -517,5 +499,12 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
         repositories: repositoryParams,
       },
     };
+  }
+
+  private emitStatusUpdated(stage?: BundlerStage): void {
+    this.stage = stage ?? this.stage;
+    this.eventOccurred = true;
+    this.emit('statusUpdated', this.status);
+    this.logger?.debug({ msg: 'status updated', status: this.status });
   }
 }

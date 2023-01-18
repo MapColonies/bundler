@@ -14,7 +14,7 @@ const hashStream = async (stream: ReadStream, hash: Hash): Promise<string> => {
     stream.on('error', reject);
     stream.on('end', () => resolve(hash.digest('hex')));
   });
-}
+};
 
 export interface ChecksumOutput extends BaseOutput {
   checksum: Checksum;

@@ -1,5 +1,5 @@
 import { EOL } from 'os';
-import { BundleStatus } from '@bundler/core';
+import { BundlerStage, BundleStatus } from '@bundler/core';
 import { Status } from '@bundler/common';
 import { Level, PADDING } from '../util';
 import { Content, ExtendedColumnifyOptions, StyleRequest, Title } from '../styleRequest';
@@ -18,24 +18,76 @@ const columnifyOptions: ExtendedColumnifyOptions = {
   columnSplitter: PADDING.repeat(Level.FIRST),
 };
 
+const stageToStatus = (stage: BundlerStage): Status => {
+  switch (stage) {
+    case BundlerStage.DONE:
+      return Status.SUCCESS;
+    case BundlerStage.FAILURE:
+      return Status.FAILURE;
+    default:
+      return Status.PENDING;
+  }
+};
+
 export class BundleStyleRequestBuilder extends StyleRequestBuilder {
   public build(data: BundleStatus): StyleRequest {
-    const executingContent = {
-      isDim: true,
-      content: `>   Executing tasks: ${data.tasksCompleted}/${data.tasksTotal} succeeded`,
-      status: Status.PENDING,
-      level: Level.FIRST,
-    };
+    const messageContents: Content[] = [];
 
-    const archivingContent = {
-      isDim: true,
-      content: { data: [{ name: `Archiving bundle`, status: data.status }], config: columnifyOptions },
-      status: data.status,
-      level: Level.FIRST,
-    };
+    if (data.stage === BundlerStage.INIT) {
+      const calcContent = {
+        isDim: true,
+        content: { data: [{ name: `Calculating tasks`, status: Status.PENDING }], config: columnifyOptions },
+        status: Status.PENDING,
+        level: Level.FIRST,
+      };
+      messageContents.push(calcContent);
+    } else {
+      const executingStatus = data.stage === BundlerStage.EXECUTION ? Status.PENDING : Status.SUCCESS;
+      const completedReposCount = data.repositories.filter((r) => r.status === Status.SUCCESS).length;
+      const executingTasksContent = {
+        isDim: true,
+        content: {
+          data: [
+            {
+              name: `Executing tasks: ${data.tasksCompleted}/${data.tasksTotal} succeeded from ${completedReposCount}/${data.repositories.length} repositories`,
+              status: executingStatus,
+            },
+          ],
+          config: columnifyOptions,
+        },
+        status: executingStatus,
+        level: Level.FIRST,
+      };
 
-    const topLevelStatus = data.status;
-    const contents: Content[] = data.repositories.map((repo) => {
+      messageContents.push(executingTasksContent);
+
+      if (data.stage >= BundlerStage.ARCHIVE) {
+        const archivingStatus = data.stage === BundlerStage.ARCHIVE ? Status.PENDING : Status.SUCCESS;
+        const archivingContent = {
+          isDim: true,
+          content: { data: [{ name: `Archiving bundle`, status: archivingStatus }], config: columnifyOptions },
+          status: archivingStatus,
+          level: Level.FIRST,
+        };
+
+        messageContents.push(archivingContent);
+      }
+
+      if (data.stage >= BundlerStage.CHECKSUM) {
+        const checksumStatus = data.stage === BundlerStage.CHECKSUM ? Status.PENDING : Status.SUCCESS;
+        const checksumContent = {
+          isDim: true,
+          content: { data: [{ name: `Creating checksum`, status: checksumStatus }], config: columnifyOptions },
+          status: checksumStatus,
+          level: Level.FIRST,
+        };
+
+        messageContents.push(checksumContent);
+      }
+    }
+
+    const topLevelStatus = stageToStatus(data.stage);
+    const repoContents: Content[] = data.repositories.map((repo) => {
       let imagesContent: Content | undefined = undefined;
 
       const images = repo.tasks.filter((t) => t.kind === 'Dockerfile' || t.kind === 'migrations.Dockerfile');
@@ -97,15 +149,15 @@ export class BundleStyleRequestBuilder extends StyleRequestBuilder {
     });
 
     let suffix: Title | undefined = undefined;
-    if (data.status === Status.SUCCESS) {
-      suffix = { isBold: true, content: BUNDLE_SUCCESS_MESSAGE(data.output), status: data.status, level: Level.FIRST };
-    } else if (data.status === Status.FAILURE) {
-      suffix = { isBold: true, content: BUNDLE_FAILED_MESSAGE, status: data.status, level: Level.FIRST };
+    if (topLevelStatus === Status.SUCCESS) {
+      suffix = { isBold: true, content: BUNDLE_SUCCESS_MESSAGE(data.output), status: topLevelStatus, level: Level.FIRST };
+    } else if (topLevelStatus === Status.FAILURE) {
+      suffix = { isBold: true, content: BUNDLE_FAILED_MESSAGE, status: topLevelStatus, level: Level.FIRST };
     }
 
     return {
-      prefix: { content: PREFIX(COMMAND_NAME), isBold: true, status: data.status },
-      main: [data.allTasksCompleted ? archivingContent : executingContent, ...contents],
+      prefix: { content: PREFIX(COMMAND_NAME), isBold: true, status: topLevelStatus },
+      main: [...repoContents, ...messageContents],
       suffix,
     };
   }
