@@ -40,6 +40,8 @@ export const spawnChildProcess = (
     const stdoutPipedForLogging = childProcess.stdout.pipe(new PassThrough());
     const stderrPipedForLogging = childProcess.stderr.pipe(new PassThrough());
 
+    logger?.debug({ pid: childProcess.pid, executable, command, commandArgs });
+
     readline.createInterface(stdoutPipedForLogging).on('line', (line) => {
       if (line.length > 0 && logger) {
         logger.debug({ pid: childProcess.pid, executable, command, std: 'stdout', msg: line });

@@ -29,8 +29,8 @@ export const dockerBuild = async (args: DockerBuildArgs & EnvOptions & Commander
 
   const { exitCode, stderr } = await promisifyChildProcess(childProcess);
 
-  if (exitCode !== 0) {
-    throw new Error(stderr.length > 0 ? stderr : `docker ${Command.BUILD} failed with exit code ${exitCode ?? 'null'}`);
+  if (exitCode !== null && exitCode !== 0) {
+    throw new Error(stderr.length > 0 ? stderr : `docker ${Command.BUILD} failed with exit code ${exitCode}`);
   }
 };
 
@@ -43,8 +43,8 @@ export const dockerSave = async (args: DockerSaveArgs & CommanderOptions): Promi
 
   const { exitCode, stderr } = await promisifyChildProcess(childProcess);
 
-  if (exitCode !== 0) {
-    throw new Error(stderr.length > 0 ? stderr : `docker ${Command.SAVE} failed with exit code ${exitCode ?? 'null'}`);
+  if (exitCode !== null && exitCode !== 0) {
+    throw new Error(stderr.length > 0 ? stderr : `docker ${Command.SAVE} failed with exit code ${exitCode}`);
   }
 };
 
@@ -57,8 +57,8 @@ export const dockerPull = async (args: DockerPullArgs & CommanderOptions): Promi
 
   const { exitCode, stderr } = await promisifyChildProcess(childProcess);
 
-  if (exitCode !== 0) {
-    throw new Error(stderr.length > 0 ? stderr : `docker ${Command.PULL} failed with exit code ${exitCode ?? 'null'}`);
+  if (exitCode !== null && exitCode !== 0) {
+    throw new Error(stderr.length > 0 ? stderr : `docker ${Command.PULL} failed with exit code ${exitCode}`);
   }
 };
 
@@ -67,7 +67,7 @@ export const dockerVersion = async (args?: CommanderOptions): Promise<void> => {
 
   const { exitCode, stderr } = await promisifyChildProcess(childProcess);
 
-  if (exitCode !== 0) {
-    throw new Error(stderr.length > 0 ? stderr : `docker ${Command.VERSION} failed with exit code ${exitCode ?? 'null'}`);
+  if (exitCode !== null && exitCode !== 0) {
+    throw new Error(stderr.length > 0 ? stderr : `docker ${Command.VERSION} failed with exit code ${exitCode}`);
   }
 };

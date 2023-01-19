@@ -117,15 +117,15 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
         }
       });
 
-      this.commander.on('packageCompleted', async (packageId) => {
-        await this.onPackageCompleted(packageId);
+      this.commander.on('packageCompleted', async (helmPackage) => {
+        await this.onPackageCompleted(helmPackage.id);
         if (this.allTasksCompleted) {
           resolve(await this.createOutputs());
         }
       });
 
-      this.commander.on('downloadCompleted', async (downloadId) => {
-        this.onDownloadCompleted(downloadId);
+      this.commander.on('downloadCompleted', async (download) => {
+        this.onDownloadCompleted(download.id);
         if (this.allTasksCompleted) {
           resolve(await this.createOutputs());
         }
@@ -336,10 +336,10 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
   private async onBuildCompleted(image: Image): Promise<void> {
     this.logger?.info({ bundleId: this.bundleId, msg: 'buildCompleted', image });
 
-    this.emitStatusUpdated();
-
     const repo = this.taskIdToRepositoryLookup(image.id);
     this.patchTask(repo, { id: image.id, stage: TaskStage.SAVING });
+
+    this.emitStatusUpdated();
 
     await this.commander.save({ image, path: join(repo.workdir.path, BundleDirs.IMAGES, `${image.name}-${image.tag}.${TAR_FORMAT}`) });
   }
@@ -347,12 +347,16 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
   private async onPullCompleted(image: Image): Promise<void> {
     this.logger?.info({ bundleId: this.bundleId, msg: 'pullCompleted', image });
 
-    this.emitStatusUpdated();
-
     const repo = this.taskIdToRepositoryLookup(image.id);
     this.patchTask(repo, { id: image.id, stage: TaskStage.SAVING });
 
-    const args: DockerSaveArgs = { image, path: join(repo.workdir.path, BundleDirs.IMAGES, `${image.name}-${image.tag}.${TAR_FORMAT}`) };
+    this.emitStatusUpdated();
+
+    const args: DockerSaveArgs = {
+      image,
+      registry: DEFAULT_CONTAINER_REGISTRY,
+      path: join(repo.workdir.path, BundleDirs.IMAGES, `${image.name}-${image.tag}.${TAR_FORMAT}`),
+    };
 
     if (repo.buildImageLocally === false) {
       args.registry = DEFAULT_CONTAINER_REGISTRY;
@@ -365,8 +369,6 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
   private async onPackageCompleted(packageId: string): Promise<void> {
     this.logger?.info({ bundleId: this.bundleId, msg: 'packageCompleted', packageId });
 
-    this.emitStatusUpdated();
-
     const repo = this.taskIdToRepositoryLookup(packageId);
     this.patchTask(repo, { id: packageId, status: Status.SUCCESS, stage: undefined });
     repo.completed++;
@@ -376,23 +378,22 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
     }
 
     this.tasksCompleted++;
+    this.emitStatusUpdated();
   }
 
   private onDownloadCompleted(downloadId: string): void {
     this.logger?.info({ bundleId: this.bundleId, msg: 'downloadCompleted', downloadId });
 
-    this.emitStatusUpdated();
-
     const repo = this.taskIdToRepositoryLookup(downloadId);
     this.patchTask(repo, { id: downloadId, status: Status.SUCCESS, stage: undefined });
     repo.completed++;
     this.tasksCompleted++;
+
+    this.emitStatusUpdated();
   }
 
   private async onSaveCompleted(image: Image): Promise<void> {
     this.logger?.info({ bundleId: this.bundleId, msg: 'saveCompleted', image });
-
-    this.emitStatusUpdated();
 
     const repo = this.taskIdToRepositoryLookup(image.id);
     this.patchTask(repo, { id: image.id, status: Status.SUCCESS, stage: undefined });
@@ -403,16 +404,21 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
     }
 
     this.tasksCompleted++;
+    this.emitStatusUpdated();
   }
 
-  private async onCommandFailed(failedObj: unknown, error: unknown, message?: string): Promise<void> {
-    this.logger?.info({ bundleId: this.bundleId, msg: 'commandFailed', failedObj, error, message });
+  private async onCommandFailed(failedObj: { id: string }, error: unknown, message?: string): Promise<void> {
+    const repository = this.taskIdToRepositoryLookup(failedObj.id);
+    const task = repository.tasks.find((task) => task.id === failedObj.id);
 
-    this.emitStatusUpdated(BundlerStage.FAILURE);
+    this.logger?.error({ bundleId: this.bundleId, msg: 'commandFailed', failedObj, repository, task, err: error, message });
 
     this.commander.terminate();
-    await this.postBundleCleanup();
-    throw error;
+    if (this.config.cleanupMode !== 'none') {
+      await this.postBundleCleanup();
+    }
+
+    this.emitStatusUpdated(BundlerStage.FAILURE);
   }
 
   private taskIdToRepositoryLookup(taskId: string): RepositoryProfile {

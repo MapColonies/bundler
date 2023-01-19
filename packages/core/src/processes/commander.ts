@@ -7,16 +7,16 @@ import { httpDownload } from './http';
 import { terminateSpawns } from '.';
 
 interface BaseCommanderEvents {
-  commandFailed: (obj: unknown, error: unknown, message?: string) => void;
+  commandFailed: (obj: { id: string }, error: unknown, message?: string) => void;
   terminateCompleted: () => void;
 }
 
 interface HelmCommanderEvents extends BaseCommanderEvents {
-  packageCompleted: (packageId: string) => Promise<void> | void;
+  packageCompleted: (halkdPackage: { id: string }) => Promise<void> | void;
 }
 
 interface HttpCommanderEvents extends BaseCommanderEvents {
-  downloadCompleted: (downloadId: string) => Promise<void> | void;
+  downloadCompleted: (download: { id: string }) => Promise<void> | void;
 }
 
 interface DockerCommanderEvents extends BaseCommanderEvents {
@@ -41,7 +41,6 @@ export class Commander extends TypedEmitter<DockerCommanderEvents & HelmCommande
       this.emit('buildCompleted', args.image);
     } catch (error) {
       this.emit('commandFailed', args.image, error);
-      throw error;
     }
   }
 
@@ -51,7 +50,6 @@ export class Commander extends TypedEmitter<DockerCommanderEvents & HelmCommande
       this.emit('pullCompleted', args.image);
     } catch (error) {
       this.emit('commandFailed', args.image, error);
-      throw error;
     }
   }
 
@@ -61,27 +59,24 @@ export class Commander extends TypedEmitter<DockerCommanderEvents & HelmCommande
       this.emit('saveCompleted', args.image);
     } catch (error) {
       this.emit('commandFailed', args.image, error);
-      throw error;
     }
   }
 
   public async package(args: HelmPackageArgs): Promise<void> {
     try {
       await helmPackage({ ...args, ...this.options });
-      this.emit('packageCompleted', args.packageId);
+      this.emit('packageCompleted', { id: args.packageId });
     } catch (error) {
-      this.emit('commandFailed', args.packageId, error);
-      throw error;
+      this.emit('commandFailed', { id: args.packageId }, error);
     }
   }
 
   public async download(args: DownloadArgs): Promise<void> {
     try {
       await httpDownload({ ...args, ...this.options });
-      this.emit('downloadCompleted', args.id);
+      this.emit('downloadCompleted', { id: args.id });
     } catch (error) {
-      this.emit('commandFailed', args.id, error);
-      throw error;
+      this.emit('commandFailed', { id: args.id }, error);
     }
   }
 
