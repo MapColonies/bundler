@@ -12,11 +12,15 @@ export const EXAMPLES: {
   description: string;
 }[] = [
   {
-    command: '$0 bundle -o ./example.tar.gz -r ts-server-boilerplate -l -H',
-    description: '>>  bundle the given repository by building locally and include: helm package',
+    command: '$0 bundle -r ts-server-boilerplate -l -o ./output.tar.gz',
+    description: '>>  bundle the given repository by building locally',
   },
   {
-    command: '$0 bundle -o ./example.tar.gz -R replica-server@v1.0.1 osm-sync-tracker@v3.2.0 -m -a -H',
-    description: '>>  bundle the given repositories by pulling from registry and including: migrations, assets and helm packages',
+    command: '$0 bundle -R replica-server@v1.0.1 osm-sync-tracker@v3.2.0 -m -a -H -o ./output.tar.gz',
+    description: '>>  bundle the given repositories by pulling from registry and including given flags',
+  },
+  {
+    command: '$0 bundle -i ./examples/input.json -o ./output.tar.gz',
+    description: '>>  bundle according to the given possibly mixed criterias in the input file',
   },
 ];

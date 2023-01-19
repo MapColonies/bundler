@@ -1,4 +1,4 @@
-import { Bundler, BundlerOptions, CleanupMode, BundleStatus } from '@bundler/core';
+import { Bundler, BundlerOptions, CleanupMode, BundleStatus, Repository } from '@bundler/core';
 import { IGithubClient, RepositoryId } from '@bundler/github';
 import { ExitCodes } from '@bundler/common';
 import { FactoryFunction } from 'tsyringe';
@@ -11,10 +11,11 @@ import { checkWrapper } from '../../wrappers/check';
 import { coerceWrapper } from '../../wrappers/coerce';
 import { IConfig } from '../../config/configStore';
 import { repoProvidedCheck } from './checks';
-import { repositoriesCoerce, repositoryCoerce } from './coerces';
+import { inputCoerce, repositoriesCoerce, repositoryCoerce } from './coerces';
 import { command, describe, EXAMPLES } from './constants';
 
-interface BundleRequest {
+interface RequestArguments {
+  input?: Repository[];
   repository?: RepositoryId;
   repositories?: RepositoryId[];
   buildImageLocally: boolean;
@@ -23,7 +24,11 @@ interface BundleRequest {
   includeHelmPackage: boolean;
 }
 
-export type BundleArguments = GlobalArguments & Required<Omit<BundlerOptions, 'logger' | 'githubClient'> & BundleRequest>;
+export interface InputFileBundleRequest extends Omit<Repository, 'id'> {
+  repository: string;
+}
+
+export type BundleArguments = GlobalArguments & Required<Omit<BundlerOptions, 'logger' | 'githubClient'> & RequestArguments>;
 
 export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments, BundleArguments>> = (dependencyContainer) => {
   const logger = dependencyContainer.resolve<Logger>(SERVICES.LOGGER);
@@ -53,7 +58,7 @@ export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments
         type: 'string',
         default: 'on-the-fly' as CleanupMode,
       })
-      .option('isDebugMode', { alias: ['d', 'debug'], describe: 'execute in debug mode', nargs: 1, type: 'boolean', default: false })
+      .option('isDebugMode', { alias: ['d', 'debug'], describe: 'execute in debug mode', type: 'boolean', default: false })
       .option('buildImageLocally', {
         alias: ['l', 'build-image-locally'],
         describe: 'build image(s) locally',
@@ -78,15 +83,28 @@ export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments
         type: 'boolean',
         default: false,
       })
-      .option('repository', { alias: ['r', 'repo'], describe: 'the repository to bundle', nargs: 1, type: 'string', conflicts: ['repositories'] })
+      .option('repository', {
+        alias: ['r', 'repo'],
+        describe: 'the repository to bundle',
+        nargs: 1,
+        type: 'string',
+        conflicts: ['repositories', 'input'],
+      })
       .option('repositories', {
         alias: ['R', 'repos'],
         describe: 'the repositories to bundle',
         array: true,
         type: 'string',
-        conflicts: ['repository'],
+        conflicts: ['repository', 'input'],
+      })
+      .option('input', {
+        alias: 'i',
+        describe: 'input file request',
+        type: 'string',
+        conflicts: ['repository', 'repositories'],
       })
       .check(checkWrapper(repoProvidedCheck, logger))
+      .coerce('input', coerceWrapper(inputCoerce, logger))
       .coerce('repository', coerceWrapper(repositoryCoerce, logger))
       .coerce('repositories', coerceWrapper(repositoriesCoerce, logger));
 
@@ -104,6 +122,7 @@ export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments
       cleanupMode,
       isDebugMode,
       verbose,
+      input,
       repositories,
       repository,
       buildImageLocally,
@@ -115,8 +134,12 @@ export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments
     const logger = dependencyContainer.resolve<Logger>(SERVICES.LOGGER);
     const githubClient = dependencyContainer.resolve<IGithubClient>(SERVICES.GITHUB_CLIENT);
 
-    const reposInput = (repository as RepositoryId | undefined) ? [repository] : repositories;
-    const bundleRequest = reposInput.map((repoId) => ({ id: repoId, buildImageLocally, includeMigrations, includeAssets, includeHelmPackage }));
+    let bundleRequest = input;
+
+    if ((input as Repository[] | undefined) === undefined) {
+      const reposInput = (repository as RepositoryId | undefined) ? [repository] : repositories;
+      bundleRequest = reposInput.map((repoId) => ({ id: repoId, buildImageLocally, includeMigrations, includeAssets, includeHelmPackage }));
+    }
 
     logger.info({ msg: 'executing command', command, args: { workdir, outputPath, cleanupMode, isDebugMode, verbose }, payload: bundleRequest });
 

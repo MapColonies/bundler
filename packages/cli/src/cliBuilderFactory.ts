@@ -1,5 +1,5 @@
 import { EOL } from 'os';
-import yargs, { Argv, CommandModule, Options } from 'yargs';
+import yargs, { Argv, CommandModule } from 'yargs';
 import { FactoryFunction } from 'tsyringe';
 import { ExitCodes } from '@bundler/common';
 import { Logger } from 'pino';
@@ -32,18 +32,21 @@ export const cliBuilderFactory: FactoryFunction<Argv> = (dependencyContainer) =>
 
       const logger = dependencyContainer.resolve<Logger>(SERVICES.LOGGER);
       const configStore = dependencyContainer.resolve<IConfig>(SERVICES.CONFIG);
+      const errorChalk = chalk.red.bold;
 
       if (msg) {
-        TERMINAL_STREAM.write(`${msg}${EOL}`);
+        TERMINAL_STREAM.write(errorChalk(`${EOL}${msg}${EOL}`));
       } else if (!logger.isLevelEnabled('debug')) {
         console.error(err);
       }
 
       logger.error({ err, msg: 'an error occurred while executing command', yargsMsg: msg, exitCode: ExitCodes.GENERAL_ERROR });
 
-      TERMINAL_STREAM.write(chalk.red(`${EOL}the complete log of this run is located in: ${configStore.get<string>('logPath')}${EOL}${EOL}`));
+      TERMINAL_STREAM.write(errorChalk(`${EOL}the complete log of this run is located in: ${configStore.get<string>('logPath')}${EOL}${EOL}`));
 
       process.exitCode = ExitCodes.GENERAL_ERROR;
+
+      throw err;
     });
 
   args.middleware(verboseLoggerRegistrationMiddlewareFactory(dependencyContainer));
