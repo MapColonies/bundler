@@ -4,6 +4,7 @@ import 'reflect-metadata';
 import { hideBin } from 'yargs/helpers';
 import { Logger } from 'pino';
 import { DependencyContainer } from 'tsyringe';
+import { ExitCodes } from '@bundler/common';
 import { ON_SIGNAL, SERVICES } from './common/constants';
 import { getCli } from './cli';
 
@@ -24,6 +25,8 @@ void getCli()
     await shutDownFn();
   })
   .catch(async (error: Error) => {
+    process.exitCode = ExitCodes.GENERAL_ERROR;
+
     const errorLogger =
       depContainer?.isRegistered(SERVICES.LOGGER) === true
         ? depContainer.resolve<Logger>(SERVICES.LOGGER).error.bind(depContainer.resolve<Logger>(SERVICES.LOGGER))
