@@ -6,7 +6,6 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "test:unit": "jest --config=./tests/configurations/unit/jest.config.js",
-    "test:integration": "jest --config=./tests/configurations/integration/jest.config.js",
     "format": "prettier --check .",
     "format:fix": "prettier --write .",
     "prelint:fix": "npm run format:fix",
@@ -14,7 +13,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "release": "standard-version",
-    "test": "npm run test:unit && npm run test:integration",
+    "test": "npm run test:unit",
     "prebuild": "npm run clean",
     "build": "tsc --project tsconfig.build.json",
     "start": "npm run build && cd dist && node ./index.js",
@@ -30,10 +29,6 @@
   "files": [
     "dist/**/*"
   ],
-  "directories": {
-    "test": "tests"
-  },
-  "homepage": "",
   "dependencies": {
     "@bundler/github": "*",
     "axios": "^1.2.2",
