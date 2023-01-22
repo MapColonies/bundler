@@ -16,8 +16,8 @@ export const EXAMPLES: {
     description: '>>  bundle the given repository by building locally',
   },
   {
-    command: '$0 bundle -R replica-server@v1.0.1 osm-sync-tracker@v3.2.0 -m -a -H -o ./output.tar.gz',
-    description: '>>  bundle the given repositories by pulling from registry and including given flags',
+    command: '$0 bundle -R replica-server@v1.0.1 osm-sync-tracker@v3.2.0 -a -H -o ./output.tar.gz',
+    description: '>>  bundle given repositories by pulling from registry and including given flags',
   },
   {
     command: '$0 bundle -i ./examples/input.json -o ./output.tar.gz',
