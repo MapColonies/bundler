@@ -6,6 +6,14 @@ module.exports = {
     preset: 'ts-jest',
     testEnvironment: 'node',
     collectCoverage: true,
+    collectCoverageFrom: [
+        '<rootDir>/src/**/*.ts',
+        '!*/node_modules/',
+        '!/vendor/**',
+        '!*/common/**',
+        '!**/controllers/**',
+        '!**/routes/**',
+      ],
     coverageReporters: ['text', 'html'],
     reporters: [
         'default',

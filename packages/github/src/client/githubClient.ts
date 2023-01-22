@@ -45,7 +45,7 @@ export class GithubClient implements IGithubClient {
     this._octokit = new Octokit(options);
   }
 
-  public async downloadRepository(id: Required<RepositoryId>, mediaType?: MediaType): Promise<ArrayBuffer> {
+  public async downloadRepository(id: Required<RepositoryId>, mediaType: MediaType = 'tarball'): Promise<ArrayBuffer> {
     this.logger?.debug({ msg: 'downloading repository', id, mediaType });
 
     const downloadObj = { owner: id.owner, repo: id.name, ref: id.ref };
