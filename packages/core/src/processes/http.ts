@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { HTTP_CLIENT_TIMEOUT } from '../bundler/constants';
-import { writeBuffer } from '../fs';
+import { writeBuffer } from '../common/util';
 import { DownloadArgs } from './interfaces';
 
 export const httpDownload = async (args: DownloadArgs): Promise<void> => {

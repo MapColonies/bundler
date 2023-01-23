@@ -1,12 +1,22 @@
 import { Status } from '@bundler/common';
 import { IGithubClient, RepositoryId } from '@bundler/github';
 import { ILogger } from '../common/types';
+import { IRepositoryProvider } from '../repositoryProvider/interfaces';
+import { TaskStage } from './enums';
+import { BundleStatus } from './status';
 
-export interface BaseOutput {
-  id: string;
-  hostname: string;
-  destination: string;
-  createdAt: string;
+export interface BundlerEvents {
+  statusUpdated: (status: BundleStatus) => void;
+}
+
+export type DefaultBundlerOptions = Required<Omit<BundlerOptions, 'logger'>>;
+
+export interface Repository {
+  id: RepositoryId;
+  buildImageLocally?: boolean;
+  includeMigrations?: boolean;
+  includeAssets?: boolean;
+  includeHelmPackage?: boolean;
 }
 
 export interface RepositoryTask {
@@ -18,22 +28,7 @@ export interface RepositoryTask {
   stage?: TaskStage;
 }
 
-export enum TaskStage {
-  BUILDING = 'building',
-  PULLING = 'pulling',
-  SAVING = 'saving',
-  DOWNLOADING = 'downloading',
-}
-
 export type TaskKind = 'Dockerfile' | 'migrations.Dockerfile' | 'helm' | 'asset';
-
-export interface Repository {
-  id: RepositoryId;
-  buildImageLocally?: boolean;
-  includeMigrations?: boolean;
-  includeAssets?: boolean;
-  includeHelmPackage?: boolean;
-}
 
 export interface RepositoryProfile extends Repository {
   workdir: BundlePath;
@@ -61,4 +56,12 @@ export interface BundlerOptions {
   cleanupMode?: CleanupMode;
   verbose?: boolean;
   logger?: ILogger;
+  provider?: IRepositoryProvider;
+}
+
+export interface BaseOutput {
+  id: string;
+  hostname: string;
+  destination: string;
+  createdAt: string;
 }

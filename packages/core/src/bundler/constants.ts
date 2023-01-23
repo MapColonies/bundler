@@ -1,6 +1,3 @@
-import { join } from 'path';
-import { BundlerOptions } from './interfaces';
-
 export const TEMP_DIR = '/tmp';
 export const SOURCE_CODE_ARCHIVE = 'source-code';
 export const HTTP_CLIENT_TIMEOUT = 10000;
@@ -24,17 +21,3 @@ export const DEFAULT_BUNDLER_OUTPUT = `bundle.${TAR_GZIP_ARCHIVE_FORMAT}`;
 export const MANIFEST_FILE = 'manifest.yaml';
 export const CHECKSUM_FILE = 'checksum.yaml';
 export const DEFAULT_CHECKSUM_ALGORITHM = 'sha256';
-
-export enum BundleDirs {
-  IMAGES = 'images',
-  HELM_PACKGES = 'helm',
-  ASSETS = 'assets',
-}
-
-export const DEFAULT_OPTIONS: BundlerOptions = {
-  workdir: join(TEMP_DIR, DEFAULT_BUNDLER_DIR),
-  outputPath: join(TEMP_DIR, DEFAULT_BUNDLER_DIR, DEFAULT_BUNDLER_OUTPUT),
-  isDebugMode: false,
-  cleanupMode: 'on-the-fly',
-  verbose: false,
-};

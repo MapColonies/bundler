@@ -28,7 +28,7 @@ export interface InputFileBundleRequest extends Omit<Repository, 'id'> {
   repository: string;
 }
 
-export type BundleArguments = GlobalArguments & Required<Omit<BundlerOptions, 'logger' | 'githubClient'> & RequestArguments>;
+export type BundleArguments = GlobalArguments & Required<Omit<BundlerOptions, 'logger' | 'githubClient' | 'provider'> & RequestArguments>;
 
 export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments, BundleArguments>> = (dependencyContainer) => {
   const logger = dependencyContainer.resolve<Logger>(SERVICES.LOGGER);

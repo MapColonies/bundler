@@ -20,7 +20,7 @@ export interface ChecksumOutput extends BaseOutput {
   checksum: Checksum;
 }
 
-export const createChecksum = async (path: string, algorithm = DEFAULT_CHECKSUM_ALGORITHM): Promise<Checksum> => {
+export const checksumFile = async (path: string, algorithm = DEFAULT_CHECKSUM_ALGORITHM): Promise<Checksum> => {
   const hash = createHash(algorithm);
   const stream = createReadStream(path);
 

@@ -1,22 +1,33 @@
 import { TypedEmitter } from 'tiny-typed-emitter';
 import { ILogger } from '../common/types';
 import { dockerBuild, dockerPull, dockerSave, DOCKER_EXEC } from './docker';
-import { DockerBuildArgs, DockerPullArgs, DockerSaveArgs, DownloadArgs, EnvOptions, HelmPackageArgs, Image } from './interfaces';
+import {
+  DockerBuildArgs,
+  DockerPullArgs,
+  DockerSaveArgs,
+  DownloadArgs,
+  DownloadObject,
+  EnvOptions,
+  HelmPackage,
+  HelmPackageArgs,
+  Identifiable,
+  Image,
+} from './interfaces';
 import { helmPackage, HELM_EXEC } from './helm';
 import { httpDownload } from './http';
 import { terminateSpawns } from '.';
 
 interface BaseCommanderEvents {
-  commandFailed: (obj: { id: string }, error: unknown, message?: string) => void;
+  commandFailed: (obj: Identifiable, error: unknown, message?: string) => void;
   terminateCompleted: () => void;
 }
 
 interface HelmCommanderEvents extends BaseCommanderEvents {
-  packageCompleted: (halkdPackage: { id: string }) => Promise<void> | void;
+  packageCompleted: (halkdPackage: HelmPackage) => Promise<void> | void;
 }
 
 interface HttpCommanderEvents extends BaseCommanderEvents {
-  downloadCompleted: (download: { id: string }) => Promise<void> | void;
+  downloadCompleted: (download: DownloadObject) => Promise<void> | void;
 }
 
 interface DockerCommanderEvents extends BaseCommanderEvents {
