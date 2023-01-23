@@ -60,11 +60,7 @@ export class GithubClient implements IGithubClient {
   public async listRepositories(org: string, type?: RepositoryType, filter?: RepositoryFilter): Promise<GithubRepository[]> {
     this.logger?.debug({ msg: 'listing repositories', org, type, filter });
 
-    const repositories: GithubRepository[] = [];
-
-    for await (const response of this._octokit.paginate.iterator('GET /orgs/{org}/repos', { org, type, per_page: GITHUB_MAX_PAGINATION_LIMIT })) {
-      repositories.push(...response.data);
-    }
+    const repositories = (await this._octokit.rest.repos.listForOrg({ org, type })).data;
 
     return filter ? filterRepositories(repositories, filter) : repositories;
   }
