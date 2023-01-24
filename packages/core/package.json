@@ -30,10 +30,11 @@
     "dist/**/*"
   ],
   "dependencies": {
+    "@bundler/child-process": "*",
+    "@bundler/common": "*",
     "@bundler/github": "*",
     "axios": "^1.2.2",
     "concat-stream": "^2.0.0",
-    "execa": "5.1.1",
     "js-yaml": "^4.1.0",
     "nanoid": "^3.3.4",
     "tar": "^6.1.13",

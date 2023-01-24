@@ -30,6 +30,7 @@
     "dist/**/*"
   ],
   "dependencies": {
+    "@bundler/common": "*",
     "@octokit/rest": "19.0.5"
   },
   "devDependencies": {

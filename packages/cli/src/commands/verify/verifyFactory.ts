@@ -4,7 +4,7 @@ import { Logger } from 'pino';
 import { IGithubClient } from '@bundler/github';
 import { Argv, CommandModule } from 'yargs';
 import { Renderer, createTerminalStreamer, VerifyStyleRequestBuilder as Builder } from '@bundler/terminal-ui';
-import { dockerVerify, helmVerify } from '@bundler/core';
+import { dockerVersion as dockerVerify, helmVersion as helmVerify } from '@bundler/child-process';
 import { GlobalArguments } from '../../cliBuilderFactory';
 import { SERVICES, TERMINAL_STREAM } from '../../common/constants';
 import { command, describe } from './constants';

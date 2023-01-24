@@ -1,3 +1,5 @@
+export { ILogger, LogFn, IParentLogger } from './logging';
+
 export const NOT_FOUND_INDEX = -1;
 
 /* eslint-disable @typescript-eslint/naming-convention */
@@ -16,6 +18,10 @@ export enum Status {
 export interface Statused {
   status: Status;
   content?: string;
+}
+
+export interface Identifiable {
+  id: string;
 }
 
 export interface VerifyEntity {

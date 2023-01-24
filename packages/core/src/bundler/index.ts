@@ -1,18 +1,17 @@
 import { hostname } from 'os';
 import { mkdir, rm, writeFile } from 'fs/promises';
 import { basename, dirname, join } from 'path';
-import { Status } from '@bundler/common';
+import { ILogger, Status } from '@bundler/common';
+import { DockerSaveArgs, HelmPackage, Image, TerminationResult } from '@bundler/child-process';
 import { nanoid } from 'nanoid';
 import { IGithubClient } from '@bundler/github';
 import * as tar from 'tar';
 import { TypedEmitter } from 'tiny-typed-emitter';
 import { dump } from 'js-yaml';
-import { Commander } from '../processes/commander';
+import { TaskCommander } from '../taskCommander/taskCommander';
 import { IRepositoryProvider } from '../repositoryProvider/interfaces';
-import { DockerSaveArgs, DownloadObject, HelmPackage, Image } from '../processes/interfaces';
 import { provideDefaultOptions, stringifyRepositoryId, writeBuffer } from '../common/util';
-import { ILogger } from '../common/types';
-import { TerminationResult } from '../processes/childProcess';
+import { DownloadObject } from '../http/download';
 import { BundlerOptions, BundlePath, Repository, RepositoryProfile, TaskKind, BundlerEvents, BaseOutput, RepositoryTask } from './interfaces';
 import {
   DEFAULT_BRANCH,
@@ -33,7 +32,7 @@ import { BundleDirs, TaskStage } from './enums';
 export class Bundler extends TypedEmitter<BundlerEvents> {
   private readonly logger: ILogger | undefined;
   private readonly githubClient: IGithubClient;
-  private readonly commander: Commander;
+  private readonly taskCommander: TaskCommander;
   private readonly provider: IRepositoryProvider;
 
   private readonly bundleId: string = nanoid();
@@ -48,13 +47,13 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
     const defaultOptions = provideDefaultOptions();
     const baseLogger = config.logger?.child({ bundleId: this.bundleId });
     this.logger = config.logger?.child({ bundleId: this.bundleId });
-    this.commander = new Commander({ verbose: config.isDebugMode, logger: baseLogger });
+    this.taskCommander = new TaskCommander({ verbose: config.isDebugMode, logger: baseLogger });
     this.githubClient = config.githubClient ?? defaultOptions.githubClient;
     this.provider = config.provider ?? defaultOptions.provider;
 
-    this.commander.on('buildCompleted', this.onBuildCompleted.bind(this));
-    this.commander.on('pullCompleted', this.onPullCompleted.bind(this));
-    this.commander.on('terminateCompleted', this.onTerminateCompleted.bind(this));
+    this.taskCommander.on('buildCompleted', this.onBuildCompleted.bind(this));
+    this.taskCommander.on('pullCompleted', this.onPullCompleted.bind(this));
+    this.taskCommander.on('terminateCompleted', this.onTerminateCompleted.bind(this));
 
     this.logger?.debug({ msg: 'bundler initialized', config });
   }
@@ -106,28 +105,28 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
     this.emitStatusUpdated(BundlerStage.EXECUTION);
 
     const promisifyTasksChain = new Promise((resolve, reject) => {
-      this.commander.on('saveCompleted', async (image) => {
+      this.taskCommander.on('saveCompleted', async (image) => {
         await this.onSaveCompleted(image);
         if (this.allTasksCompleted) {
           resolve(await this.createOutputs());
         }
       });
 
-      this.commander.on('packageCompleted', async (helmPackage) => {
+      this.taskCommander.on('packageCompleted', async (helmPackage) => {
         await this.onPackageCompleted(helmPackage);
         if (this.allTasksCompleted) {
           resolve(await this.createOutputs());
         }
       });
 
-      this.commander.on('downloadCompleted', async (download) => {
+      this.taskCommander.on('downloadCompleted', async (download) => {
         this.onDownloadCompleted(download);
         if (this.allTasksCompleted) {
           resolve(await this.createOutputs());
         }
       });
 
-      this.commander.once('commandFailed', async (failedObj, error, message) => {
+      this.taskCommander.once('commandFailed', async (failedObj, error, message) => {
         await this.onCommandFailed(failedObj, error, message);
         reject(error);
       });
@@ -236,18 +235,18 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
               envOptions: { DOCKER_BUILDKIT: '1' },
             };
 
-            commands.push(this.commander.build(dockerBuildArgs));
+            commands.push(this.taskCommander.build(dockerBuildArgs));
           } else {
             const dockerPullArgs = {
               image,
               registry: DEFAULT_CONTAINER_REGISTRY,
             };
 
-            commands.push(this.commander.pull(dockerPullArgs));
+            commands.push(this.taskCommander.pull(dockerPullArgs));
           }
         } else if (task.kind === 'helm') {
           commands.push(
-            this.commander.package({
+            this.taskCommander.package({
               helmPackage: { id: task.id },
               path: join(repo.extraction.path, task.archivedPath),
               destination: join(repo.workdir.path, HELM_DIR),
@@ -255,7 +254,7 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
           );
         } else {
           commands.push(
-            this.commander.download({
+            this.taskCommander.download({
               downloadObj: { id: task.id },
               url: task.archivedPath,
               destination: join((repo.assets as BundlePath).path, task.name),
@@ -308,7 +307,7 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
 
     this.emitStatusUpdated();
 
-    await this.commander.save({ image, path: join(repo.workdir.path, BundleDirs.IMAGES, `${image.name}-${image.tag}.${TAR_FORMAT}`) });
+    await this.taskCommander.save({ image, path: join(repo.workdir.path, BundleDirs.IMAGES, `${image.name}-${image.tag}.${TAR_FORMAT}`) });
   }
 
   private async onPullCompleted(image: Image): Promise<void> {
@@ -329,7 +328,7 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
       args.registry = DEFAULT_CONTAINER_REGISTRY;
     }
 
-    await this.commander.save(args);
+    await this.taskCommander.save(args);
   }
 
   private async onPackageCompleted(helmPackage: HelmPackage): Promise<void> {
@@ -386,7 +385,7 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
 
     this.logger?.error({ msg: 'commandFailed', failedObj, repository: repoWithoutTasks, task, err: error, message });
 
-    this.commander.terminate();
+    this.taskCommander.terminate();
     if (this.config.cleanupMode !== 'none') {
       await this.postBundleCleanup();
     }

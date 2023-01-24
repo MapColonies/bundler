@@ -1,7 +1,15 @@
+import { Identifiable } from '@bundler/common';
 import axios from 'axios';
 import { HTTP_CLIENT_TIMEOUT } from '../bundler/constants';
 import { writeBuffer } from '../common/util';
-import { DownloadArgs } from './interfaces';
+
+export interface DownloadObject extends Identifiable {}
+
+export interface DownloadArgs {
+  downloadObj: DownloadObject;
+  url: string;
+  destination: string;
+}
 
 export const httpDownload = async (args: DownloadArgs): Promise<void> => {
   const { url, destination } = args;

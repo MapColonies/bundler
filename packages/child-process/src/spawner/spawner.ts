@@ -1,12 +1,11 @@
 import * as readline from 'readline';
 import { PassThrough } from 'stream';
-import { NOT_FOUND_INDEX } from '@bundler/common';
+import { ILogger, NOT_FOUND_INDEX } from '@bundler/common';
 import execa, { ExecaChildProcess } from 'execa';
-import { ILogger } from '../common/types';
 
 const children: { executable: string; childProcess: ExecaChildProcess }[] = [];
 
-export interface SubTerminationResult {
+interface SubTerminationResult {
   executable: string;
   pid?: number;
   killed?: boolean;
@@ -35,7 +34,7 @@ export const spawnChild = async (
 
   children.push({ executable, childProcess: spawnedChild });
 
-  if (logger) {
+  if (logger !== undefined) {
     const stdoutPipedForLogging = spawnedChild.stdout?.pipe(new PassThrough());
     const stderrPipedForLogging = spawnedChild.stderr?.pipe(new PassThrough());
 

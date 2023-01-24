@@ -1,6 +1,6 @@
 import { Arguments } from 'yargs';
-import { ILogger } from '@bundler/core/src/common/types';
 import { DependencyContainer } from 'tsyringe';
+import { ILogger } from '@bundler/common';
 import { CheckError } from '../common/errors';
 
 export type CheckFunc<T> = (args: Arguments<T>) => Promise<true> | true;

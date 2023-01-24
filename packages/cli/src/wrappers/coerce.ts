@@ -1,4 +1,4 @@
-import { ILogger } from '@bundler/core/src';
+import { ILogger } from '@bundler/common';
 import { CheckError } from '../common/errors';
 
 export type CoerceFunc<T1, T2> = (arg: T1 | undefined) => T2 | undefined;

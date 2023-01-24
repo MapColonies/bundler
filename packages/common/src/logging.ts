@@ -5,10 +5,6 @@ export interface LogFn {
   (msg: string, ...args: unknown[]): void;
 }
 
-export interface IParentLogger extends ILogger {
-  child: (base: Record<string, unknown>, options?: { level?: LogLevel }) => IParentLogger;
-}
-
 export interface ILogger {
   trace?: LogFn;
   debug: LogFn;
@@ -16,4 +12,8 @@ export interface ILogger {
   warn: LogFn;
   error: LogFn;
   fatal?: LogFn;
+}
+
+export interface IParentLogger extends ILogger {
+  child: (base: Record<string, unknown>, options?: { level?: LogLevel }) => IParentLogger;
 }

@@ -1,6 +1,5 @@
-import { Status } from '@bundler/common';
+import { IParentLogger, Status } from '@bundler/common';
 import { IGithubClient, RepositoryId } from '@bundler/github';
-import { IParentLogger } from '../common/types';
 import { IRepositoryProvider } from '../repositoryProvider/interfaces';
 import { TaskStage } from './enums';
 import { BundleStatus } from './status';

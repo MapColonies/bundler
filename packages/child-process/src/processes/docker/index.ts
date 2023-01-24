@@ -1,8 +1,8 @@
-/* eslint-disable @typescript-eslint/naming-convention */ // global envOptions does not follow convention
-import { ILogger } from '../common/types';
-import { DockerBuildArgs, DockerPullArgs, DockerSaveArgs } from './interfaces';
-import { CommanderOptions } from './commander';
-import { spawnChild } from './childProcess';
+import { Identifiable, ILogger } from '@bundler/common';
+import { spawnChild } from '../../spawner/spawner';
+import { EnvOptions, GlobalOptions } from '../common';
+
+const DOCKER_EXEC = 'docker';
 
 enum Command {
   BUILD = 'build',
@@ -11,9 +11,29 @@ enum Command {
   VERSION = 'version',
 }
 
-export const DOCKER_EXEC = 'docker';
+export interface Image extends Identifiable {
+  name: string;
+  tag: string;
+}
 
-export const dockerBuild = async (args: DockerBuildArgs & CommanderOptions): Promise<void> => {
+export interface DockerBuildArgs extends EnvOptions {
+  dockerFile: string;
+  image: Image;
+  path: string;
+}
+
+export interface DockerPullArgs {
+  registry?: string;
+  image: Image;
+}
+
+export interface DockerSaveArgs {
+  image: Image;
+  path: string;
+  registry?: string;
+}
+
+export const dockerBuild = async (args: DockerBuildArgs & GlobalOptions): Promise<void> => {
   const { dockerFile, image, path, envOptions, verbose, logger } = args;
 
   let childLogger: ILogger | undefined = undefined;
@@ -30,7 +50,7 @@ export const dockerBuild = async (args: DockerBuildArgs & CommanderOptions): Pro
   }
 };
 
-export const dockerSave = async (args: DockerSaveArgs & CommanderOptions): Promise<void> => {
+export const dockerSave = async (args: DockerSaveArgs & GlobalOptions): Promise<void> => {
   const { image, registry, path, verbose, logger } = args;
 
   const finalImageName = registry !== undefined ? `${registry}/${image.name}:${image.tag}` : `${image.name}:${image.tag}`;
@@ -49,7 +69,7 @@ export const dockerSave = async (args: DockerSaveArgs & CommanderOptions): Promi
   }
 };
 
-export const dockerPull = async (args: DockerPullArgs & CommanderOptions): Promise<void> => {
+export const dockerPull = async (args: DockerPullArgs & GlobalOptions): Promise<void> => {
   const { registry, image, verbose, logger } = args;
 
   const imageWithRegistry = registry !== undefined ? `${registry}/${image.name}:${image.tag}` : `${image.name}:${image.tag}`;
@@ -68,7 +88,7 @@ export const dockerPull = async (args: DockerPullArgs & CommanderOptions): Promi
   }
 };
 
-export const dockerVersion = async (args?: CommanderOptions & CommanderOptions): Promise<void> => {
+export const dockerVersion = async (args?: GlobalOptions): Promise<void> => {
   const { verbose, logger } = args ?? {};
 
   let childLogger: ILogger | undefined = undefined;

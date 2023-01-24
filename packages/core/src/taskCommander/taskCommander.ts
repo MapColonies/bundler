@@ -1,46 +1,25 @@
 import { TypedEmitter } from 'tiny-typed-emitter';
-import { ILogger, IParentLogger } from '../common/types';
-import { dockerBuild, dockerPull, dockerSave } from './docker';
+import { IParentLogger } from '@bundler/common';
 import {
+  dockerBuild,
   DockerBuildArgs,
+  dockerPull,
   DockerPullArgs,
+  dockerSave,
   DockerSaveArgs,
-  DownloadArgs,
-  DownloadObject,
-  HelmPackage,
+  helmPackage,
   HelmPackageArgs,
-  Identifiable,
-  Image,
-} from './interfaces';
-import { helmPackage } from './helm';
-import { httpDownload } from './http';
-import { terminateChildren, TerminationResult } from './childProcess';
+  terminateChildren,
+} from '@bundler/child-process';
+import { DownloadArgs, httpDownload } from '../http/download';
+import { DockerCommanderEvents, HelmCommanderEvents, HttpCommanderEvents } from './events';
 
-interface BaseCommanderEvents {
-  commandFailed: (obj: Identifiable, error: unknown, message?: string) => void;
-  terminateCompleted: (result: TerminationResult) => void;
-}
-
-interface HelmCommanderEvents extends BaseCommanderEvents {
-  packageCompleted: (halkdPackage: HelmPackage) => Promise<void> | void;
-}
-
-interface HttpCommanderEvents extends BaseCommanderEvents {
-  downloadCompleted: (download: DownloadObject) => Promise<void> | void;
-}
-
-interface DockerCommanderEvents extends BaseCommanderEvents {
-  buildCompleted: (image: Image) => Promise<void> | void;
-  pullCompleted: (image: Image) => Promise<void> | void;
-  saveCompleted: (image: Image) => Promise<void> | void;
-}
-
-export interface CommanderOptions {
+interface CommanderOptions {
   verbose?: boolean;
   logger?: IParentLogger;
 }
 
-export class Commander extends TypedEmitter<DockerCommanderEvents & HelmCommanderEvents & HttpCommanderEvents> {
+export class TaskCommander extends TypedEmitter<DockerCommanderEvents & HelmCommanderEvents & HttpCommanderEvents> {
   public constructor(private readonly options?: CommanderOptions) {
     super();
   }
