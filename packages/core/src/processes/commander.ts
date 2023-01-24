@@ -1,25 +1,24 @@
 import { TypedEmitter } from 'tiny-typed-emitter';
-import { ILogger } from '../common/types';
-import { dockerBuild, dockerPull, dockerSave, DOCKER_EXEC } from './docker';
+import { ILogger, IParentLogger } from '../common/types';
+import { dockerBuild, dockerPull, dockerSave } from './docker';
 import {
   DockerBuildArgs,
   DockerPullArgs,
   DockerSaveArgs,
   DownloadArgs,
   DownloadObject,
-  EnvOptions,
   HelmPackage,
   HelmPackageArgs,
   Identifiable,
   Image,
 } from './interfaces';
-import { helmPackage, HELM_EXEC } from './helm';
+import { helmPackage } from './helm';
 import { httpDownload } from './http';
-import { terminateSpawns } from '.';
+import { terminateChildren, TerminationResult } from './childProcess';
 
 interface BaseCommanderEvents {
   commandFailed: (obj: Identifiable, error: unknown, message?: string) => void;
-  terminateCompleted: () => void;
+  terminateCompleted: (result: TerminationResult) => void;
 }
 
 interface HelmCommanderEvents extends BaseCommanderEvents {
@@ -38,7 +37,7 @@ interface DockerCommanderEvents extends BaseCommanderEvents {
 
 export interface CommanderOptions {
   verbose?: boolean;
-  logger?: ILogger;
+  logger?: IParentLogger;
 }
 
 export class Commander extends TypedEmitter<DockerCommanderEvents & HelmCommanderEvents & HttpCommanderEvents> {
@@ -46,7 +45,7 @@ export class Commander extends TypedEmitter<DockerCommanderEvents & HelmCommande
     super();
   }
 
-  public async build(args: DockerBuildArgs & EnvOptions): Promise<void> {
+  public async build(args: DockerBuildArgs): Promise<void> {
     try {
       await dockerBuild({ ...args, ...this.options });
       this.emit('buildCompleted', args.image);
@@ -76,26 +75,24 @@ export class Commander extends TypedEmitter<DockerCommanderEvents & HelmCommande
   public async package(args: HelmPackageArgs): Promise<void> {
     try {
       await helmPackage({ ...args, ...this.options });
-      this.emit('packageCompleted', { id: args.packageId });
+      this.emit('packageCompleted', args.helmPackage);
     } catch (error) {
-      this.emit('commandFailed', { id: args.packageId }, error);
+      this.emit('commandFailed', args.helmPackage, error);
     }
   }
 
   public async download(args: DownloadArgs): Promise<void> {
     try {
       await httpDownload({ ...args, ...this.options });
-      this.emit('downloadCompleted', { id: args.id });
+      this.emit('downloadCompleted', args.downloadObj);
     } catch (error) {
-      this.emit('commandFailed', { id: args.id }, error);
+      this.emit('commandFailed', args.downloadObj, error);
     }
   }
 
   public terminate(): void {
-    [DOCKER_EXEC, HELM_EXEC].forEach((spawn) => {
-      terminateSpawns(spawn);
-    });
+    const result = terminateChildren();
 
-    this.emit('terminateCompleted');
+    this.emit('terminateCompleted', result);
   }
 }

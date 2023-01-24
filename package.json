@@ -2,8 +2,7 @@
   "name": "bundler",
   "version": "1.0.0",
   "description": "a monorepo consisting of all bundler related packages",
-  "scripts": {
-  },
+  "scripts": {},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/MapColonies/bundler.git"

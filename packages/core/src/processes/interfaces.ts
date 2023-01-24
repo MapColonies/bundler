@@ -11,11 +11,16 @@ export interface HelmPackage extends Identifiable {}
 
 export interface DownloadObject extends Identifiable {}
 
-export interface EnvOptions {
-  useBuildkit?: boolean;
+export interface EnvDictionary extends NodeJS.Dict<string> {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  DOCKER_BUILDKIT?: string;
 }
 
-export interface DockerBuildArgs {
+export interface EnvOptions {
+  envOptions?: EnvDictionary;
+}
+
+export interface DockerBuildArgs extends EnvOptions {
   dockerFile: string;
   image: Image;
   path: string;
@@ -33,13 +38,13 @@ export interface DockerSaveArgs {
 }
 
 export interface HelmPackageArgs {
-  packageId: string;
+  helmPackage: HelmPackage;
   path: string;
   destination: string;
 }
 
 export interface DownloadArgs {
-  id: string;
+  downloadObj: DownloadObject;
   url: string;
   destination: string;
 }

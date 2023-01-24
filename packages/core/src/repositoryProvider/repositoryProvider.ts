@@ -48,8 +48,8 @@ export class RepositoryProvider implements IRepositoryProvider {
     return repository ?? null;
   }
 
-  public patchRepository(repoId: RepositoryId, updatedRepository: Partial<RepositoryProfile>): void {
-    const repoIndex = this.getRepositoryIndex(repoId);
+  public patchRepository(repositoryId: RepositoryId, updatedRepository: Partial<RepositoryProfile>): void {
+    const repoIndex = this.getRepositoryIndex(repositoryId);
     if (repoIndex === NOT_FOUND_INDEX) {
       return;
     }

@@ -1,6 +1,8 @@
-import { DockerBuildArgs, DockerPullArgs, DockerSaveArgs, EnvOptions } from './interfaces';
+/* eslint-disable @typescript-eslint/naming-convention */ // global envOptions does not follow convention
+import { ILogger } from '../common/types';
+import { DockerBuildArgs, DockerPullArgs, DockerSaveArgs } from './interfaces';
 import { CommanderOptions } from './commander';
-import { spawnChildProcess, promisifyChildProcess } from '.';
+import { spawnChild } from './childProcess';
 
 enum Command {
   BUILD = 'build',
@@ -11,63 +13,74 @@ enum Command {
 
 export const DOCKER_EXEC = 'docker';
 
-// TODO: improve passing commander options
-export const dockerBuild = async (args: DockerBuildArgs & EnvOptions & CommanderOptions): Promise<void> => {
-  const { dockerFile, image, path, useBuildkit } = args;
+export const dockerBuild = async (args: DockerBuildArgs & CommanderOptions): Promise<void> => {
+  const { dockerFile, image, path, envOptions, verbose, logger } = args;
 
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  const envOptions = useBuildkit === true ? { DOCKER_BUILDKIT: '1' } : { DOCKER_BUILDKIT: '0' };
+  let childLogger: ILogger | undefined = undefined;
+  if (verbose === true) {
+    childLogger = logger?.child({ image }, { level: 'debug' });
+  }
 
-  const childProcess = spawnChildProcess(
-    DOCKER_EXEC,
-    Command.BUILD,
-    ['-f', dockerFile, '-t', `${image.name}:${image.tag}`, path],
-    envOptions,
-    args.verbose,
-    args.logger
-  );
+  const childProcess = spawnChild(DOCKER_EXEC, Command.BUILD, ['-f', dockerFile, '-t', `${image.name}:${image.tag}`, path], envOptions, childLogger);
 
-  const { exitCode, stderr } = await promisifyChildProcess(childProcess);
+  const { exitCode, stderr } = await childProcess;
 
-  if (exitCode !== null && exitCode !== 0) {
+  if (exitCode !== 0) {
     throw new Error(stderr.length > 0 ? stderr : `docker ${Command.BUILD} failed with exit code ${exitCode}`);
   }
 };
 
 export const dockerSave = async (args: DockerSaveArgs & CommanderOptions): Promise<void> => {
-  const { image, registry, path } = args;
+  const { image, registry, path, verbose, logger } = args;
 
   const finalImageName = registry !== undefined ? `${registry}/${image.name}:${image.tag}` : `${image.name}:${image.tag}`;
 
-  const childProcess = spawnChildProcess(DOCKER_EXEC, Command.SAVE, ['-o', path, finalImageName], undefined, args.verbose, args.logger);
+  let childLogger: ILogger | undefined = undefined;
+  if (verbose === true) {
+    childLogger = logger?.child({ image }, { level: 'debug' });
+  }
 
-  const { exitCode, stderr } = await promisifyChildProcess(childProcess);
+  const childProcess = spawnChild(DOCKER_EXEC, Command.SAVE, ['-o', path, finalImageName], undefined, childLogger);
 
-  if (exitCode !== null && exitCode !== 0) {
+  const { exitCode, stderr } = await childProcess;
+
+  if (exitCode !== 0) {
     throw new Error(stderr.length > 0 ? stderr : `docker ${Command.SAVE} failed with exit code ${exitCode}`);
   }
 };
 
 export const dockerPull = async (args: DockerPullArgs & CommanderOptions): Promise<void> => {
-  const { registry, image } = args;
+  const { registry, image, verbose, logger } = args;
 
   const imageWithRegistry = registry !== undefined ? `${registry}/${image.name}:${image.tag}` : `${image.name}:${image.tag}`;
 
-  const childProcess = spawnChildProcess(DOCKER_EXEC, Command.PULL, [imageWithRegistry], undefined, args.verbose, args.logger);
+  let childLogger: ILogger | undefined = undefined;
+  if (verbose === true) {
+    childLogger = logger?.child({ image }, { level: 'debug' });
+  }
 
-  const { exitCode, stderr } = await promisifyChildProcess(childProcess);
+  const childProcess = spawnChild(DOCKER_EXEC, Command.PULL, [imageWithRegistry], undefined, childLogger);
 
-  if (exitCode !== null && exitCode !== 0) {
+  const { exitCode, stderr } = await childProcess;
+
+  if (exitCode !== 0) {
     throw new Error(stderr.length > 0 ? stderr : `docker ${Command.PULL} failed with exit code ${exitCode}`);
   }
 };
 
-export const dockerVersion = async (args?: CommanderOptions): Promise<void> => {
-  const childProcess = spawnChildProcess(DOCKER_EXEC, Command.VERSION, [], undefined, args?.verbose, args?.logger);
+export const dockerVersion = async (args?: CommanderOptions & CommanderOptions): Promise<void> => {
+  const { verbose, logger } = args ?? {};
 
-  const { exitCode, stderr } = await promisifyChildProcess(childProcess);
+  let childLogger: ILogger | undefined = undefined;
+  if (verbose === true) {
+    childLogger = logger?.child({}, { level: 'debug' });
+  }
 
-  if (exitCode !== null && exitCode !== 0) {
+  const childProcess = spawnChild(DOCKER_EXEC, Command.VERSION, [], undefined, childLogger);
+
+  const { exitCode, stderr } = await childProcess;
+
+  if (exitCode !== 0) {
     throw new Error(stderr.length > 0 ? stderr : `docker ${Command.VERSION} failed with exit code ${exitCode}`);
   }
 };

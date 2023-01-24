@@ -12,6 +12,7 @@ import { IRepositoryProvider } from '../repositoryProvider/interfaces';
 import { DockerSaveArgs, DownloadObject, HelmPackage, Image } from '../processes/interfaces';
 import { provideDefaultOptions, stringifyRepositoryId, writeBuffer } from '../common/util';
 import { ILogger } from '../common/types';
+import { TerminationResult } from '../processes/childProcess';
 import { BundlerOptions, BundlePath, Repository, RepositoryProfile, TaskKind, BundlerEvents, BaseOutput, RepositoryTask } from './interfaces';
 import {
   DEFAULT_BRANCH,
@@ -44,15 +45,16 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
 
   public constructor(private readonly config: BundlerOptions) {
     super();
-    // TODO: improve
     const defaultOptions = provideDefaultOptions();
-    this.logger = config.logger;
+    const baseLogger = config.logger?.child({ bundleId: this.bundleId });
+    this.logger = config.logger?.child({ bundleId: this.bundleId });
+    this.commander = new Commander({ verbose: config.isDebugMode, logger: baseLogger });
     this.githubClient = config.githubClient ?? defaultOptions.githubClient;
     this.provider = config.provider ?? defaultOptions.provider;
-    this.commander = new Commander({ verbose: config.isDebugMode, logger: this.logger });
 
     this.commander.on('buildCompleted', this.onBuildCompleted.bind(this));
     this.commander.on('pullCompleted', this.onPullCompleted.bind(this));
+    this.commander.on('terminateCompleted', this.onTerminateCompleted.bind(this));
 
     this.logger?.debug({ msg: 'bundler initialized', config });
   }
@@ -64,9 +66,9 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
 
     const repos = this.provider.getRepositories().map((repoProfile) => {
       const name = stringifyRepositoryId(repoProfile.id);
-      const tasks = repoProfile.tasks.map((task) => ({ name: task.name, status: task.status, kind: task.kind, content: task.stage }));
+      const tasks = repoProfile.tasks.map((task) => ({ id: task.id, name: task.name, status: task.status, kind: task.kind, content: task.stage }));
       const repoStatus = repoProfile.profiled && repoProfile.tasks.every((t) => t.status === Status.SUCCESS) ? Status.SUCCESS : Status.PENDING;
-      return { name, tasks, status: repoStatus };
+      return { id: repoProfile.id, name, tasks, status: repoStatus };
     });
 
     this.statusCache = {
@@ -217,22 +219,24 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
     const commands: Promise<unknown>[] = [];
 
     for (const repo of this.provider.getRepositories()) {
-      for (const external of repo.tasks) {
-        if (external.kind === DOCKER_FILE || external.kind === MIGRATIONS_DOCKER_FILE) {
+      for (const task of repo.tasks) {
+        if (task.kind === DOCKER_FILE || task.kind === MIGRATIONS_DOCKER_FILE) {
           const image = {
-            id: external.id,
-            name: external.kind === MIGRATIONS_DOCKER_FILE ? `${repo.id.name}-migrations` : repo.id.name,
+            id: task.id,
+            name: task.kind === MIGRATIONS_DOCKER_FILE ? `${repo.id.name}-migrations` : repo.id.name,
             tag: repo.id.ref ?? 'latest',
           };
 
           if (repo.buildImageLocally === true) {
             const dockerBuildArgs = {
-              dockerFile: join(repo.extraction.path, external.archivedPath),
-              path: join(repo.extraction.path, dirname(external.archivedPath)),
+              dockerFile: join(repo.extraction.path, task.archivedPath),
+              path: join(repo.extraction.path, dirname(task.archivedPath)),
               image,
+              // eslint-disable-next-line @typescript-eslint/naming-convention
+              envOptions: { DOCKER_BUILDKIT: '1' },
             };
 
-            commands.push(this.commander.build({ ...dockerBuildArgs, useBuildkit: true }));
+            commands.push(this.commander.build(dockerBuildArgs));
           } else {
             const dockerPullArgs = {
               image,
@@ -241,20 +245,20 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
 
             commands.push(this.commander.pull(dockerPullArgs));
           }
-        } else if (external.kind === 'helm') {
+        } else if (task.kind === 'helm') {
           commands.push(
             this.commander.package({
-              packageId: external.id,
-              path: join(repo.extraction.path, external.archivedPath),
+              helmPackage: { id: task.id },
+              path: join(repo.extraction.path, task.archivedPath),
               destination: join(repo.workdir.path, HELM_DIR),
             })
           );
         } else {
           commands.push(
             this.commander.download({
-              id: external.id,
-              url: external.archivedPath,
-              destination: join((repo.assets as BundlePath).path, external.name),
+              downloadObj: { id: task.id },
+              url: task.archivedPath,
+              destination: join((repo.assets as BundlePath).path, task.name),
             })
           );
         }
@@ -274,7 +278,7 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
       removable.push(...paths.filter((path) => path.shouldRemove));
     }
 
-    this.logger?.debug({ msg: `pre cleanup`, bundleId: this.bundleId, repositoriesToClean: repositoriesToClean.map((r) => r.id), paths: removable });
+    this.logger?.debug({ msg: `pre cleanup`, repositoriesToClean: repositoriesToClean.map((r) => r.id), paths: removable });
 
     await Promise.allSettled(removable.map(async (path) => rm(path.path, { recursive: true })));
   }
@@ -282,7 +286,7 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
   private async postBundleCleanup(): Promise<void> {
     const bundleDir = join(this.config.workdir, this.bundleId);
 
-    this.logger?.debug({ msg: `post cleanup`, bundleId: this.bundleId, paths: bundleDir });
+    this.logger?.debug({ msg: `post cleanup`, paths: bundleDir });
 
     await rm(bundleDir, { recursive: true });
   }
@@ -297,7 +301,7 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
   }
 
   private async onBuildCompleted(image: Image): Promise<void> {
-    this.logger?.info({ bundleId: this.bundleId, msg: 'buildCompleted', image });
+    this.logger?.info({ msg: 'buildCompleted', image });
 
     const repo = this.provider.getRepositoryByTaskId(image.id) as Readonly<RepositoryProfile>;
     this.provider.patchTask(image.id, { stage: TaskStage.SAVING });
@@ -308,7 +312,7 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
   }
 
   private async onPullCompleted(image: Image): Promise<void> {
-    this.logger?.info({ bundleId: this.bundleId, msg: 'pullCompleted', image });
+    this.logger?.info({ msg: 'pullCompleted', image });
 
     const repo = this.provider.getRepositoryByTaskId(image.id) as Readonly<RepositoryProfile>;
     this.provider.patchTask(image.id, { stage: TaskStage.SAVING });
@@ -329,7 +333,7 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
   }
 
   private async onPackageCompleted(helmPackage: HelmPackage): Promise<void> {
-    this.logger?.info({ bundleId: this.bundleId, msg: 'packageCompleted', helmPackage });
+    this.logger?.info({ msg: 'packageCompleted', helmPackage });
 
     let repo = this.provider.getRepositoryByTaskId(helmPackage.id) as Readonly<RepositoryProfile>;
     this.provider.patchTask(helmPackage.id, { status: Status.SUCCESS, stage: undefined });
@@ -347,7 +351,7 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
   }
 
   private onDownloadCompleted(downloadObj: DownloadObject): void {
-    this.logger?.info({ bundleId: this.bundleId, msg: 'downloadCompleted', downloadObj });
+    this.logger?.info({ msg: 'downloadCompleted', downloadObj });
 
     const repo = this.provider.getRepositoryByTaskId(downloadObj.id) as Readonly<RepositoryProfile>;
     this.provider.patchTask(downloadObj.id, { status: Status.SUCCESS, stage: undefined });
@@ -358,7 +362,7 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
   }
 
   private async onSaveCompleted(image: Image): Promise<void> {
-    this.logger?.info({ bundleId: this.bundleId, msg: 'saveCompleted', image });
+    this.logger?.info({ msg: 'saveCompleted', image });
 
     let repo = this.provider.getRepositoryByTaskId(image.id) as Readonly<RepositoryProfile>;
     this.provider.patchTask(image.id, { status: Status.SUCCESS, stage: undefined });
@@ -377,9 +381,10 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
 
   private async onCommandFailed(failedObj: { id: string }, error: unknown, message?: string): Promise<void> {
     const repo = this.provider.getRepositoryByTaskId(failedObj.id) as Readonly<RepositoryProfile>;
+    const { tasks, ...repoWithoutTasks } = repo;
     const task = repo.tasks.find((task) => task.id === failedObj.id);
 
-    this.logger?.error({ bundleId: this.bundleId, msg: 'commandFailed', failedObj, repository: repo, task, err: error, message });
+    this.logger?.error({ msg: 'commandFailed', failedObj, repository: repoWithoutTasks, task, err: error, message });
 
     this.commander.terminate();
     if (this.config.cleanupMode !== 'none') {
@@ -387,6 +392,10 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
     }
 
     this.emitStatusUpdated(BundlerStage.FAILURE);
+  }
+
+  private onTerminateCompleted(result: TerminationResult): void {
+    this.logger?.debug({ msg: 'terminateCompleted', result });
   }
 
   private async createOutputs(): Promise<void> {

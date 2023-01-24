@@ -1,6 +1,6 @@
 import { Status } from '@bundler/common';
 import { IGithubClient, RepositoryId } from '@bundler/github';
-import { ILogger } from '../common/types';
+import { IParentLogger } from '../common/types';
 import { IRepositoryProvider } from '../repositoryProvider/interfaces';
 import { TaskStage } from './enums';
 import { BundleStatus } from './status';
@@ -55,7 +55,7 @@ export interface BundlerOptions {
   isDebugMode?: boolean;
   cleanupMode?: CleanupMode;
   verbose?: boolean;
-  logger?: ILogger;
+  logger?: IParentLogger;
   provider?: IRepositoryProvider;
 }
 
