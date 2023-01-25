@@ -46,7 +46,6 @@ export const verboseLoggerRegistrationMiddlewareFactory: RegisterOnContainerMidd
 
     const configStore = dependencyContainer.resolve<IConfig>(SERVICES.CONFIG);
 
-    // TODO: log level formatter
     const logger = pino({
       level: VERBOSE_LOG_LEVEL,
       transport: {

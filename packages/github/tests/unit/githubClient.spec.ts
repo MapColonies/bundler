@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */ // octokit uses snake_case
 import pino from 'pino';
+import { GithubRepository } from '../../dist';
 import { GithubClient } from '../../src';
 
 const downloadTarballArchiveMock = jest.fn();
@@ -195,6 +196,139 @@ describe('GithubClient', () => {
       await expect(promise).rejects.toThrow(error);
       expect(listForOrgMock).toHaveBeenCalledTimes(1);
       expect(listForOrgMock).toHaveBeenCalledWith({ org: 'org' });
+    });
+  });
+
+  describe('#listRepositoriesGenerator', () => {
+    it('should resolve with no data if none were returned', async () => {
+      async function* func(): AsyncGenerator {
+        yield await Promise.resolve({ data: [] });
+      }
+
+      paginateIteratorMock.mockReturnValue(func());
+
+      const mockGenerator = client.listRepositoriesGenerator('org');
+      const firstIter = await mockGenerator.next();
+      const secondIter = await mockGenerator.next();
+
+      expect(firstIter.value).toEqual([]);
+      expect(secondIter.value).toEqual([]);
+      expect(paginateIteratorMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('should generate an async generator returning repositories when no filter is set', async () => {
+      const first: Partial<GithubRepository> = { id: 1 };
+      const second: Partial<GithubRepository> = { id: 2 };
+      const third: Partial<GithubRepository> = { id: 3 };
+
+      async function* func(): AsyncGenerator {
+        yield await Promise.resolve({ data: [first, second] });
+        yield await Promise.resolve({ data: [third] });
+      }
+
+      paginateIteratorMock.mockReturnValue(func());
+
+      const mockGenerator = client.listRepositoriesGenerator('org');
+      const firstIter = await mockGenerator.next();
+      const secondIter = await mockGenerator.next();
+
+      expect(firstIter.value).toEqual([first, second]);
+      expect(secondIter.value).toEqual([third]);
+      expect(paginateIteratorMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('should generate an async generator returning non acrchived repositories', async () => {
+      const first: Partial<GithubRepository> = { id: 1, archived: true };
+      const second: Partial<GithubRepository> = { id: 2, archived: false };
+      const third: Partial<GithubRepository> = { id: 3 };
+      const fourth: Partial<GithubRepository> = { id: 3, archived: false };
+
+      async function* func(): AsyncGenerator {
+        yield await Promise.resolve({ data: [first, second] });
+        yield await Promise.resolve({ data: [third] });
+        yield await Promise.resolve({ data: [fourth] });
+      }
+
+      paginateIteratorMock.mockReturnValue(func());
+
+      const mockGenerator = client.listRepositoriesGenerator('org', 'all', { archived: false });
+      const firstIter = await mockGenerator.next();
+      const secondIter = await mockGenerator.next();
+      const thirdIter = await mockGenerator.next();
+
+      expect(firstIter.value).toEqual([second]);
+      expect(secondIter.value).toEqual([]);
+      expect(thirdIter.value).toEqual([fourth]);
+      expect(paginateIteratorMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('should generate an async generator returning repositories filtered by topic', async () => {
+      const first: Partial<GithubRepository> = { id: 1, topics: [] };
+      const second: Partial<GithubRepository> = { id: 2, topics: ['t1'] };
+      const third: Partial<GithubRepository> = { id: 3, topics: ['t1', 't2'] };
+      const fourth: Partial<GithubRepository> = { id: 4, topics: ['t3'] };
+
+      async function* func(): AsyncGenerator {
+        yield await Promise.resolve({ data: [first, second] });
+        yield await Promise.resolve({ data: [third] });
+        yield await Promise.resolve({ data: [fourth] });
+      }
+
+      paginateIteratorMock.mockReturnValue(func());
+
+      const mockGenerator = client.listRepositoriesGenerator('org', 'all', { topics: ['t1'] });
+      const firstIter = await mockGenerator.next();
+      const secondIter = await mockGenerator.next();
+      const thirdIter = await mockGenerator.next();
+
+      expect(firstIter.value).toEqual([second]);
+      expect(secondIter.value).toEqual([third]);
+      expect(thirdIter.value).toEqual([]);
+      expect(paginateIteratorMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('should generate an async generator returning repositories filtered by archived and topic', async () => {
+      const first: Partial<GithubRepository> = { id: 1, topics: [] };
+      const second: Partial<GithubRepository> = { id: 2, topics: ['t1'] };
+      const third: Partial<GithubRepository> = { id: 3, topics: ['t1', 't2'], archived: true };
+      const fourth: Partial<GithubRepository> = { id: 4, topics: ['t3'] };
+
+      async function* func(): AsyncGenerator {
+        yield await Promise.resolve({ data: [first, second] });
+        yield await Promise.resolve({ data: [third] });
+        yield await Promise.resolve({ data: [fourth] });
+      }
+
+      paginateIteratorMock.mockReturnValue(func());
+
+      const mockGenerator = client.listRepositoriesGenerator('org', 'all', { archived: true, topics: ['t1'] });
+      const firstIter = await mockGenerator.next();
+      const secondIter = await mockGenerator.next();
+      const thirdIter = await mockGenerator.next();
+
+      expect(firstIter.value).toEqual([]);
+      expect(secondIter.value).toEqual([third]);
+      expect(thirdIter.value).toEqual([]);
+      expect(paginateIteratorMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('should reject if pagination rejects', async () => {
+      const first: Partial<GithubRepository> = { id: 1, topics: ['t1'], archived: false };
+      const error = new Error();
+
+      async function* func(): AsyncGenerator {
+        yield await Promise.resolve({ data: [first] });
+        yield await Promise.reject(error);
+      }
+
+      paginateIteratorMock.mockReturnValue(func());
+
+      const mockGenerator = client.listRepositoriesGenerator('org', 'all', { archived: false, topics: ['t1'] });
+      const firstIter = await mockGenerator.next();
+
+      expect(firstIter.value).toEqual([first]);
+      await expect(mockGenerator.next()).rejects.toThrow(error);
+      expect(paginateIteratorMock).toHaveBeenCalledTimes(1);
     });
   });
 

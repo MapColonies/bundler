@@ -64,7 +64,6 @@ function* styleContent(current?: Content): Generator<string> {
   yield* styleContent(current.subContent);
 }
 
-// TODO: improve
 export const getSpinnerFrame = (): string => {
   return spinner.frames[spinnerFrameIndex % spinner.frames.length];
 };

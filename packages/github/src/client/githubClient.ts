@@ -33,7 +33,6 @@ export class GithubClient implements IGithubClient {
   public constructor(options: GithubClientOptions = DEFAULT_OPTIONS) {
     this.logger = options.logger;
 
-    // TODO: object logging wont work
     if (this.logger) {
       options.log = {
         debug: this.logger.debug.bind(this.logger),
