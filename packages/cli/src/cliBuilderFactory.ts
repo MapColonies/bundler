@@ -22,7 +22,7 @@ export const cliBuilderFactory: FactoryFunction<Argv> = (dependencyContainer) =>
     .usage('Usage: $0 <command> [options]')
     .demandCommand(1, 'please provide a command')
     .recommendCommands()
-    .option('verbose', { alias: 'v', describe: 'cli verbosity', type: 'boolean', default: false })
+    .option('verbose', { alias: 'v', describe: 'verbosity flag', type: 'boolean', default: false })
     .option('token', { alias: 't', describe: 'github access token', nargs: 1, type: 'string' })
     .group(['verbose', 'token', 'help', 'version'], 'Global Options:')
     .help('h')

@@ -58,7 +58,7 @@ export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments
         type: 'string',
         default: 'on-the-fly' as CleanupMode,
       })
-      .option('isDebugMode', { alias: ['d', 'debug'], describe: 'execute in debug mode', type: 'boolean', default: false })
+      .option('isDebugMode', { alias: ['d', 'debug'], describe: 'child processes logs will be logged', type: 'boolean', default: false })
       .option('buildImageLocally', {
         alias: ['l', 'build-image-locally'],
         describe: 'build image(s) locally',

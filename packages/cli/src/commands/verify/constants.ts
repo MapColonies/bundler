@@ -1,4 +1,4 @@
 export const VERIFY_COMMAND_FACTORY = Symbol('VerifyCommandFactory');
 
 export const command = 'verify';
-export const describe = 'Verify the pre-requisites are set up correctly';
+export const describe = 'verify the pre-requisites for bundling are set up correctly';
