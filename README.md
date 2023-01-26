@@ -1,7 +1,12 @@
-# bundler
-the bundler provides an efficient way for bundling code and its artifacts into inner networks
+# Bundler
+The bundler provides an efficient way for bundling code and its artifacts into inner networks
 
-the bundler comes with a cli tool which provides 3 commands:
+<p align="center">
+  <img width="1000" src="https://user-images.githubusercontent.com/57397441/214824318-13b108d0-ee92-4d12-86a4-cc51ed52a583.svg">
+</p>
+
+## Usage
+The bundler comes with a cli tool providing 3 commands:
 
 ```
 Usage: bundler <command> [options]
@@ -16,11 +21,12 @@ Global Options:
       --version  Show version number  [boolean]
 ```
 
+#### Global Options:
 - `verbose`: the cli comes with a neat terminal user interface. by providing the verbose flag the ui will be deactivated and logs from the level of `debug` or higher will be streamed to the terminal
-- `token`: private github repositories requires a valid github token. to bundle\list such repositories a token must be provided upon command. to set a persistent token see [local configuration](#local-configuration)
+- `token`: private github repositories requires a valid github token. to bundle\list such repositories a token must be provided upon command. to set a persistent token see [local configuration](#Local-Configuration)
 
-## bundle command
-bundles a single / multiple repositories and their artifacts into a single tar.gz archive ready for bdila
+## Bundle command
+Bundles a single / multiple repositories and their artifacts into a single tar.gz archive ready for bdila
 a repository is provided by `{owner}/{name}/{ref}`
 - owner is non required, defaults to `MapColonies`
 - name is required, the repository name
@@ -40,7 +46,7 @@ Global Options:
   -h, --help     Show help  [boolean]
       --version  Show version number  [boolean]
 Options:
-  -w, --workdir                                     the bundler working directory  [string] [default: "/home/{hostname}/.bundler-cli/workdir"]
+  -w, --workdir                                     the bundler working directory  [string] [default: "$HOME/.bundler-cli/workdir"]
   -o, --outputPath                                  the bundler output file path  [string] [required]
   -c, --cleanupMode                                 the bundle execution cleanup mode  [string] [choices: "none", "on-the-fly", "post"] [default: "on-the-fly"]
   -d, --isDebugMode, --debug                        child processes logs will be logged  [boolean] [default: false]
@@ -73,14 +79,14 @@ Examples:
     - `repositories`: bundle multiple repositories
     - `input`: the path to a input file consisting the repositories to be bundled and their include artifacts flags. this option provides the possibility to have a mixture of include flags. once provided the other include flags will be dismissed, [see example](packages/cli/examples/input.json)
 
-### manifest
-the bundler will produce a `manifest.yaml` file depicting the input parameters and the resulting output of the bundle. the file will be located in the bundle archive root level
+### Manifest
+The bundler will produce a `manifest.yaml` file depicting the input parameters and the resulting output of the bundle. the file will be located in the bundle archive root level, [see example](packages/cli/examples/manifest.yaml)
 
-### checksum
-other than the bundle archive itself the bundler will produce a `checksum.yaml` file of the bundler tar.gz archive file. this checksum can be used to verify the bdila process went accordingly
+### Checksum
+Other than the bundle archive itself the bundler will produce a `checksum.yaml` file. this is a checksum of the tar.gz archive file and can be used to verify the bdila process went accordingly
 
-## list command
-lists all the repositories in correspondence to the filter flags, will list only non archived repositories and that match at least one of provided topics
+## List command
+Lists all the repositories in correspondence to the filter flags, will list only non archived repositories and that match at least one of provided topics
 [read more on topics](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/classifying-your-repository-with-topics)
 ```
 > bundler list
@@ -97,9 +103,9 @@ Examples:
   bundler list -V public -T javascript docker helm  >>  lists public repositories from the given topics
 ```
 
-## verify command
+## Verify command
 
-checks that all pre-requisites are set up correctly: internet connectivity docker, helm and possibly provided github access token
+Checks that all pre-requisites are set up correctly: internet connectivity, docker, helm and possibly provided github access token
 
 ```
 > bundler verify
@@ -113,11 +119,11 @@ Examples:
   bundler verify --token X  >>  verifies the environment including the verification of given token X
 ```
 
-### local configuration
-the cli holds a local configuration located in the cli working directory `/home/{hostname}/.bundler-cli/config.json`
+### Local Configuration
+The cli holds a local configuration located in the cli working directory `$HOME/.bundler-cli/config.json`
 
-the configuration holds the following schema:
-- `workdir`: path to a single bundle command working directory. defaults to `/home/{hostname}/.bundler-cli/workdir`
+The configuration has the following schema:
+- `workdir`: path to a single bundle command working directory. defaults to `$HOME/.bundler-cli/workdir`
 - `githubAccessToken`: a consistent token to be used by default. can be overrided by providing --token flag
 ```json
 {
@@ -126,9 +132,29 @@ the configuration holds the following schema:
 }
 ```
 
-### logs
-each cli run creates a single log file consisting the targeted logs defined by the `verbose` and `isDebugMode` flags.
-all log files are located in the cli working directory `/home/{hostname}/.bundler-cli/logs`
+### Logs
+Each cli run creates a single local log file consisting the targeted logs defined by the `verbose` and `isDebugMode` flags.
+All log files are located in the cli working directory `$HOME.bundler-cli/logs`
 
 - a failed cli run will provide the path to its log file
 - a successful cli run will remove its log file from the local system
+
+
+### Environment Variables
+Any option that can be set using the cli command line, can be also set by writing its value in `SNAKE_CASE`.
+For example, the option `--isDebugMode` can be set by using the `IS_DEBUG_MODE` environment variables.
+
+## Development
+This repository is a monorepo managed by [`Lerna`](https://lerna.js.org/) saperated into multiple independent packages
+
+![graph](https://user-images.githubusercontent.com/57397441/214806302-e6dc6465-c6b9-4f39-a960-fec4313f7715.png)
+
+### Building
+```
+npx lerna run build
+```
+
+### Run Tests
+```
+npx lerna run test
+```

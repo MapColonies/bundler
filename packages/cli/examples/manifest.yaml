@@ -1,0 +1,76 @@
+id: WVGPOX51Z8s8UNrrycRNf
+hostname: hostname
+createdAt: '2023-01-26T08:52:10.820Z'
+destination: ./output.tar.gz
+output:
+  MapColonies-osm-sync-tracker-v3.3.0:
+    - source-code.tar.gz
+    - images:
+        - osm-sync-tracker:v3.3.0.tar
+        - osm-sync-tracker-migrations:v3.3.0.tar
+    - assets:
+        - osm-sync-tracker-v3.3.0-postman-collection.json
+    - helm:
+        - osm-sync-tracker:v3.3.0.tgz
+  MapColonies-id-2-osm-v2.0.0:
+    - source-code.tar.gz
+    - images:
+        - id-2-osm:v2.0.0.tar
+        - id-2-osm-migrations:v2.0.0.tar
+    - assets: []
+    - helm:
+        - id-2-osm:v2.0.0.tgz
+  MapColonies-external-to-osm-tag-mapping-v1.7.5:
+    - source-code.tar.gz
+    - images:
+        - external-to-osm-tag-mapping:v1.7.5.tar
+    - assets: []
+    - helm: []
+  MapColonies-osm-change-generator-server-v1.4.4:
+    - source-code.tar.gz
+    - images:
+        - osm-change-generator-server:v1.4.4.tar
+    - assets:
+        - osm-change-generator-server-v1.4.4-postman-collection.json
+    - helm:
+        - osm-change-generator-server:v1.4.4.tgz
+  MapColonies-change-merger-v1.3.4:
+    - source-code.tar.gz
+    - images:
+        - change-merger:v1.3.4.tar
+    - assets:
+        - change-merger-v1.3.4-postman-collection.json
+    - helm:
+        - change-merger:v1.3.4.tgz
+  MapColonies-id-merger-v1.3.1:
+    - source-code.tar.gz
+    - images:
+        - id-merger:v1.3.1.tar
+    - assets: []
+    - helm:
+        - id-merger:v1.3.1.tgz
+parameters:
+  repositories:
+    - id: MapColonies-osm-sync-tracker-v3.3.0
+      buildImageLocally: true
+      includeMigrations: true
+      includeAssets: true
+      includeHelmPackage: true
+    - id: MapColonies-id-2-osm-v2.0.0
+      includeMigrations: true
+      includeAssets: true
+      includeHelmPackage: true
+    - id: MapColonies-external-to-osm-tag-mapping-v1.7.5
+      buildImageLocally: false
+      includeAssets: false
+      includeHelmPackage: false
+    - id: MapColonies-osm-change-generator-server-v1.4.4
+      buildImageLocally: true
+      includeAssets: true
+      includeHelmPackage: true
+    - id: MapColonies-change-merger-v1.3.4
+      buildImageLocally: false
+      includeAssets: true
+      includeHelmPackage: true
+    - id: MapColonies-id-merger-v1.3.1
+      includeHelmPackage: true
