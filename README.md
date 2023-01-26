@@ -2,7 +2,7 @@
 The bundler provides an efficient way for bundling code and its artifacts into inner networks
 
 <p align="center">
-  <img width="1000" src="https://user-images.githubusercontent.com/57397441/214824318-13b108d0-ee92-4d12-86a4-cc51ed52a583.svg">
+  <img width="1000" src="https://user-images.githubusercontent.com/57397441/214832022-9378506b-10ea-42fa-b63a-2cc62aa30a44.svg">
 </p>
 
 ## Usage
