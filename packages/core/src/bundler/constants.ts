@@ -1,4 +1,4 @@
-export const TEMP_DIR = '/tmp';
+export const TEMP_DIR = 'tmp';
 export const SOURCE_CODE_ARCHIVE = 'source-code';
 export const HTTP_CLIENT_TIMEOUT = 10000;
 
