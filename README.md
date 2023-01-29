@@ -1,9 +1,7 @@
 # Bundler
-The bundler provides an efficient way for bundling code and its artifacts into inner networks
+Provides an efficient way for bundling code and its artifacts into inner networks
 
-<p align="center">
-  <img width="1000" src="https://user-images.githubusercontent.com/57397441/214838233-66107d17-398d-4cd8-9a66-a5ed971b3b6e.svg">
-</p>
+[![asciicast](https://asciinema.org/a/Ko12EFam0iIzZRYuG32qQNMY3.svg)](https://asciinema.org/a/Ko12EFam0iIzZRYuG32qQNMY3)
 
 ## Usage
 The bundler comes with a cli tool providing 3 commands:
@@ -26,7 +24,7 @@ Global Options:
 - `token`: private github repositories require a valid github token. to bundle\list such repositories a token must be provided upon command. to set a persistent token see [local configuration](#Local-Configuration)
 
 ## Bundle command
-Bundles a single/multiple repositories and their artifacts into a single tar.gz archive ready for bdila
+Bundles single/multiple repositories and their artifacts into a single tar.gz archive ready for bdila
 a repository is provided by `{owner}/{name}/{ref}`
 - owner is non-required, defaults to `MapColonies`
 - name is required, the repository name
@@ -86,7 +84,7 @@ The bundler will produce a `manifest.yaml` file depicting the input parameters a
 Other than the bundle archive itself the bundler will produce a `checksum.yaml` file. this is a checksum of the tar.gz archive file and can be used to verify the bdila process went accordingly
 
 ## List command
-Lists all the repositories in correspondence to the filter flags, will list only non-archived repositories and that match at least one of provided topics
+Lists all the repositories in correspondence to the filter flags, will list only non-archived repositories that match at least one of provided topics
 [read more on topics](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/classifying-your-repository-with-topics)
 ```
 > bundler list
@@ -134,7 +132,7 @@ The configuration has the following schema:
 
 ### Logs
 Each cli run creates a single local log file consisting of the targeted logs defined by the `verbose` and `isDebugMode` flags.
-All log files are located in the cli working directory `$HOME.bundler-cli/logs`
+All log files are located in the cli working directory `$HOME/.bundler-cli/logs`
 
 - a failed cli run will provide the path to its log file
 - a successful cli run will remove its log file from the local system
@@ -145,7 +143,7 @@ Any option that can be set using the cli command line, can be also set by writin
 For example, the option `--isDebugMode` can be set by using the `IS_DEBUG_MODE` environment variables.
 
 ## Development
-This repository is a monorepo managed by [`Lerna`](https://lerna.js.org/) saperated into multiple independent packages
+This repository is a monorepo managed by [`Lerna`](https://lerna.js.org/) and separated into multiple independent packages
 
 ![graph](https://user-images.githubusercontent.com/57397441/214806302-e6dc6465-c6b9-4f39-a960-fec4313f7715.png)
 
