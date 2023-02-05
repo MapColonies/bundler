@@ -5,8 +5,8 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "format": "prettier --check .",
-    "format:fix": "prettier --write .",
+    "format": "prettier --check . --ignore-path ../../.prettierignore",
+    "format:fix": "prettier --write . --ignore-path ../../.prettierignore",
     "prelint:fix": "npm run format:fix",
     "prelint": "npm run format",
     "lint": "eslint .",
