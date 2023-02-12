@@ -3,7 +3,7 @@ import { Renderer, createTerminalStreamer, ListStyleRequestBuilder as Builder } 
 import { FactoryFunction } from 'tsyringe';
 import { Logger } from 'pino';
 import { GithubRepository, RepositoryType, IGithubClient } from '@bundler/github';
-import { GITHUB_ORG } from '@bundler/core';
+import { GITHUB_ORG } from '@bundler/common';
 import { Arguments, Argv, CommandModule } from 'yargs';
 import { GlobalArguments } from '../../cliBuilderFactory';
 import { SERVICES, TERMINAL_STREAM } from '../../common/constants';

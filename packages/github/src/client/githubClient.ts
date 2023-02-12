@@ -2,7 +2,7 @@
 import { Octokit } from '@octokit/rest';
 import { OctokitOptions } from '@octokit/core/dist-types/types';
 import { ILogger } from '@bundler/common';
-import { GITHUB_ORG } from '@bundler/core';
+import { GITHUB_ORG } from '@bundler/common';
 import { IGithubClient, RepositoryFilter, RepositoryId } from './interfaces';
 import { GithubAsset, GithubRepository, MediaType, RepositoryType } from './types';
 import { GITHUB_API_URL, GITHUB_MAX_PAGINATION_LIMIT } from './constants';

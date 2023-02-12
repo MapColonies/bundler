@@ -1,5 +1,7 @@
 export { ILogger, LogFn, IParentLogger } from './logging';
 
+export const GITHUB_ORG = 'MapColonies';
+
 export const NOT_FOUND_INDEX = -1;
 
 /* eslint-disable @typescript-eslint/naming-convention */

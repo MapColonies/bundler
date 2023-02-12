@@ -2,7 +2,6 @@ export const TEMP_DIR = 'tmp';
 export const SOURCE_CODE_ARCHIVE = 'source-code';
 export const HTTP_CLIENT_TIMEOUT = 10000;
 
-export const GITHUB_ORG = 'MapColonies';
 export const DEFAULT_BRANCH = 'master';
 export const DEFAULT_TAG = 'latest';
 export const DEFAULT_CONTAINER_REGISTRY = 'acrarolibotnonprod.azurecr.io';

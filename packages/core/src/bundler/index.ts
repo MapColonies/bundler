@@ -1,7 +1,7 @@
 import { hostname } from 'os';
 import { mkdir, rm, writeFile } from 'fs/promises';
 import { basename, dirname, join } from 'path';
-import { ILogger, Status } from '@bundler/common';
+import { GITHUB_ORG, ILogger, Status } from '@bundler/common';
 import { DockerSaveArgs, HelmPackage, Image, TerminationResult } from '@bundler/child-process';
 import { nanoid } from 'nanoid';
 import { IGithubClient } from '@bundler/github';
@@ -19,7 +19,6 @@ import {
   TAR_FORMAT,
   MIGRATIONS_DOCKER_FILE,
   DEFAULT_CONTAINER_REGISTRY,
-  GITHUB_ORG,
   HELM_DIR,
   MANIFEST_FILE,
   CHECKSUM_FILE,

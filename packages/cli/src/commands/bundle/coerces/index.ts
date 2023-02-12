@@ -1,5 +1,6 @@
 import { readFileSync } from 'fs';
-import { GITHUB_ORG, DEFAULT_BRANCH, Repository } from '@bundler/core';
+import { DEFAULT_BRANCH, Repository } from '@bundler/core';
+import { GITHUB_ORG } from '@bundler/common';
 import { RepositoryId } from '@bundler/github';
 import { CheckError } from '../../../common/errors';
 import { isRepoValid } from '../../../validation/formats';

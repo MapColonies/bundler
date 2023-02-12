@@ -1,8 +1,9 @@
 import { join } from 'path';
 import { writeFile } from 'fs/promises';
 import { GithubClient, RepositoryId } from '@bundler/github';
+import { GITHUB_ORG } from '@bundler/common';
 import { RepositoryProvider } from '../repositoryProvider/repositoryProvider';
-import { DEFAULT_BRANCH, DEFAULT_BUNDLER_DIR, DEFAULT_BUNDLER_OUTPUT, GITHUB_ORG, TEMP_DIR } from '../bundler/constants';
+import { DEFAULT_BRANCH, DEFAULT_BUNDLER_DIR, DEFAULT_BUNDLER_OUTPUT, TEMP_DIR } from '../bundler/constants';
 import { DefaultBundlerOptions } from '../bundler/interfaces';
 
 export const provideDefaultOptions = (): DefaultBundlerOptions => {
