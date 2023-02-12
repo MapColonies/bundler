@@ -1,4 +1,4 @@
-import { Statused } from '@bundler/common/src';
+import { Statused } from '@bundler/common';
 import { TaskKind } from './interfaces';
 
 export enum BundlerStage {
