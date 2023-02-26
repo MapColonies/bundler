@@ -32,7 +32,7 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: Test Reporters
-          path: reports/**
+          path: packages/**/reports/**
 
   eslint:
     name: Run TS Project eslint
@@ -53,6 +53,9 @@ jobs:
 
       - name: Install TS Project dependencies
         run: npm install
+
+      - name: Build Lerna
+        run: npx lerna run build
 
       - name: Run TS Project linters
         uses: wearerequired/lint-action@v1
