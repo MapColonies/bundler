@@ -3,7 +3,7 @@ import { CheckError } from '../common/errors';
 
 export type CoerceFunc<T1, T2> = (arg: T1 | undefined) => T2 | undefined;
 
-export const coerceWrapper = <T1, T2>(coerce: CoerceFunc<T1, T2>, logger?: ILogger): CoerceFunc<T1, T2> => {
+export const coerce = <T1, T2>(coerce: CoerceFunc<T1, T2>, logger?: ILogger): CoerceFunc<T1, T2> => {
   const wrapper: CoerceFunc<T1, T2> = (arg) => {
     try {
       return coerce(arg);

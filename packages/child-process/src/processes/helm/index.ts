@@ -1,6 +1,5 @@
 import { Identifiable, ILogger } from '@bundler/common';
 import { spawnChild } from '../../spawner/spawner';
-import { GlobalOptions } from '../common';
 
 const HELM_EXEC = 'helm';
 
@@ -17,15 +16,10 @@ export interface HelmPackageArgs {
   destination: string;
 }
 
-export const helmPackage = async (args: HelmPackageArgs & GlobalOptions): Promise<void> => {
-  const { path, destination, verbose, logger } = args;
+export const helmPackage = async (args: HelmPackageArgs & { logger?: ILogger }): Promise<void> => {
+  const { path, destination, logger } = args;
 
-  let childLogger: ILogger | undefined = undefined;
-  if (verbose === true) {
-    childLogger = logger?.child({ helmPackage: args.helmPackage }, { level: 'debug' });
-  }
-
-  const childProcess = spawnChild(HELM_EXEC, Command.PACKAGE, [path, '-d', destination], undefined, childLogger);
+  const childProcess = spawnChild(HELM_EXEC, Command.PACKAGE, [path, '-d', destination], undefined, logger);
 
   const { exitCode, stderr } = await childProcess;
 
@@ -34,15 +28,8 @@ export const helmPackage = async (args: HelmPackageArgs & GlobalOptions): Promis
   }
 };
 
-export const helmVersion = async (args?: GlobalOptions): Promise<void> => {
-  const { logger, verbose } = args ?? {};
-
-  let childLogger: ILogger | undefined = undefined;
-  if (verbose === true) {
-    childLogger = logger?.child({}, { level: 'debug' });
-  }
-
-  const childProcess = spawnChild(HELM_EXEC, Command.VERSION, [], undefined, childLogger);
+export const helmVersion = async (args?: { logger?: ILogger }): Promise<void> => {
+  const childProcess = spawnChild(HELM_EXEC, Command.VERSION, [], undefined, args?.logger);
 
   const { exitCode, stderr } = await childProcess;
 

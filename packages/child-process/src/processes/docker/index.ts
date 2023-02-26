@@ -1,6 +1,6 @@
 import { Identifiable, ILogger } from '@bundler/common';
 import { spawnChild } from '../../spawner/spawner';
-import { EnvOptions, GlobalOptions } from '../common';
+import { EnvOptions } from '../common';
 
 const DOCKER_EXEC = 'docker';
 
@@ -33,15 +33,10 @@ export interface DockerSaveArgs {
   registry?: string;
 }
 
-export const dockerBuild = async (args: DockerBuildArgs & GlobalOptions): Promise<void> => {
-  const { dockerFile, image, path, envOptions, verbose, logger } = args;
+export const dockerBuild = async (args: DockerBuildArgs & { logger?: ILogger }): Promise<void> => {
+  const { dockerFile, image, path, envOptions, logger } = args;
 
-  let childLogger: ILogger | undefined = undefined;
-  if (verbose === true) {
-    childLogger = logger?.child({ image }, { level: 'debug' });
-  }
-
-  const childProcess = spawnChild(DOCKER_EXEC, Command.BUILD, ['-f', dockerFile, '-t', `${image.name}:${image.tag}`, path], envOptions, childLogger);
+  const childProcess = spawnChild(DOCKER_EXEC, Command.BUILD, ['-f', dockerFile, '-t', `${image.name}:${image.tag}`, path], envOptions, logger);
 
   const { exitCode, stderr } = await childProcess;
 
@@ -50,17 +45,12 @@ export const dockerBuild = async (args: DockerBuildArgs & GlobalOptions): Promis
   }
 };
 
-export const dockerSave = async (args: DockerSaveArgs & GlobalOptions): Promise<void> => {
-  const { image, registry, path, verbose, logger } = args;
+export const dockerSave = async (args: DockerSaveArgs & { logger?: ILogger }): Promise<void> => {
+  const { image, registry, path, logger } = args;
 
   const finalImageName = registry !== undefined ? `${registry}/${image.name}:${image.tag}` : `${image.name}:${image.tag}`;
 
-  let childLogger: ILogger | undefined = undefined;
-  if (verbose === true) {
-    childLogger = logger?.child({ image }, { level: 'debug' });
-  }
-
-  const childProcess = spawnChild(DOCKER_EXEC, Command.SAVE, ['-o', path, finalImageName], undefined, childLogger);
+  const childProcess = spawnChild(DOCKER_EXEC, Command.SAVE, ['-o', path, finalImageName], undefined, logger);
 
   const { exitCode, stderr } = await childProcess;
 
@@ -69,17 +59,12 @@ export const dockerSave = async (args: DockerSaveArgs & GlobalOptions): Promise<
   }
 };
 
-export const dockerPull = async (args: DockerPullArgs & GlobalOptions): Promise<void> => {
-  const { registry, image, verbose, logger } = args;
+export const dockerPull = async (args: DockerPullArgs & { logger?: ILogger }): Promise<void> => {
+  const { registry, image, logger } = args;
 
   const imageWithRegistry = registry !== undefined ? `${registry}/${image.name}:${image.tag}` : `${image.name}:${image.tag}`;
 
-  let childLogger: ILogger | undefined = undefined;
-  if (verbose === true) {
-    childLogger = logger?.child({ image }, { level: 'debug' });
-  }
-
-  const childProcess = spawnChild(DOCKER_EXEC, Command.PULL, [imageWithRegistry], undefined, childLogger);
+  const childProcess = spawnChild(DOCKER_EXEC, Command.PULL, [imageWithRegistry], undefined, logger);
 
   const { exitCode, stderr } = await childProcess;
 
@@ -88,15 +73,8 @@ export const dockerPull = async (args: DockerPullArgs & GlobalOptions): Promise<
   }
 };
 
-export const dockerVersion = async (args?: GlobalOptions): Promise<void> => {
-  const { verbose, logger } = args ?? {};
-
-  let childLogger: ILogger | undefined = undefined;
-  if (verbose === true) {
-    childLogger = logger?.child({}, { level: 'debug' });
-  }
-
-  const childProcess = spawnChild(DOCKER_EXEC, Command.VERSION, [], undefined, childLogger);
+export const dockerVersion = async (args?: { logger?: ILogger }): Promise<void> => {
+  const childProcess = spawnChild(DOCKER_EXEC, Command.VERSION, [], undefined, args?.logger);
 
   const { exitCode, stderr } = await childProcess;
 

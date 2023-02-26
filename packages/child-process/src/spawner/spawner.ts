@@ -23,7 +23,7 @@ export const spawnChild = async (
   envOptions?: NodeJS.ProcessEnv,
   logger?: ILogger
 ): Promise<ExecaChildProcess> => {
-  const spawnedChild = execa(`${executable}`, [command, ...commandArgs], { env: { ...process.env, ...envOptions }, encoding: 'utf-8' });
+  const spawnedChild = execa(executable, [command, ...commandArgs], { env: { ...process.env, ...envOptions }, encoding: 'utf-8' });
 
   const drain = (): void => {
     const index = children.findIndex((child) => child.childProcess.pid === spawnedChild.pid);

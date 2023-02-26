@@ -6,7 +6,7 @@ import { CheckError } from '../common/errors';
 export type CheckFunc<T> = (args: Arguments<T>) => Promise<true> | true;
 export type CheckFuncFactory<T> = (container: DependencyContainer) => CheckFunc<T>;
 
-export const checkWrapper = <T>(check: CheckFunc<T>, logger?: ILogger): CheckFunc<T> => {
+export const check = <T>(check: CheckFunc<T>, logger?: ILogger): CheckFunc<T> => {
   const wrapper: CheckFunc<T> = (args) => {
     try {
       return check(args);

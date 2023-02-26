@@ -1,4 +1,4 @@
-import { ExitCodes, Status, VerifyEntity } from '@bundler/common';
+import { ExitCodes, ILogger, Status, VerifyEntity } from '@bundler/common';
 import { FactoryFunction } from 'tsyringe';
 import { Logger } from 'pino';
 import { IGithubClient } from '@bundler/github';
@@ -25,10 +25,15 @@ export const verifyCommandFactory: FactoryFunction<CommandModule<GlobalArguments
 
     logger.debug({ msg: 'executing command', command });
 
+    let childLogger: ILogger | undefined = undefined;
+    if (verbose) {
+      childLogger = logger.child({}, { level: 'debug' });
+    }
+
     const verifications: VerifyEntity[] = [
       {
         name: 'docker',
-        verification: dockerVerify(),
+        verification: dockerVerify({ logger: childLogger }),
         result: {
           status: Status.PENDING,
         },
@@ -42,7 +47,7 @@ export const verifyCommandFactory: FactoryFunction<CommandModule<GlobalArguments
       },
       {
         name: 'helm',
-        verification: helmVerify(),
+        verification: helmVerify({ logger: childLogger }),
         result: {
           status: Status.PENDING,
         },

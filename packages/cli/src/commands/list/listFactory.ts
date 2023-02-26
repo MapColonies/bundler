@@ -7,7 +7,7 @@ import { GITHUB_ORG } from '@bundler/common';
 import { Arguments, Argv, CommandModule } from 'yargs';
 import { GlobalArguments } from '../../cliBuilderFactory';
 import { SERVICES, TERMINAL_STREAM } from '../../common/constants';
-import { checkWrapper } from '../../wrappers/check';
+import { check as checkWrapper } from '../../wrappers/check';
 import { command, describe } from './constants';
 import { visibilityTokenImplicationCheck } from './checks';
 

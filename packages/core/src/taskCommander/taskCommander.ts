@@ -1,5 +1,5 @@
 import { TypedEmitter } from 'tiny-typed-emitter';
-import { IParentLogger } from '@bundler/common';
+import { ILogger, IParentLogger } from '@bundler/common';
 import {
   dockerBuild,
   DockerBuildArgs,
@@ -25,8 +25,14 @@ export class TaskCommander extends TypedEmitter<DockerCommanderEvents & HelmComm
   }
 
   public async build(args: DockerBuildArgs): Promise<void> {
+
+    let childLogger: ILogger | undefined = undefined;
+    if (this.options?.verbose === true) {
+      childLogger = this.options.logger?.child({ image: args.image }, { level: 'debug' });
+    }
+
     try {
-      await dockerBuild({ ...args, ...this.options });
+      await dockerBuild({ ...args, logger: childLogger });
       this.emit('buildCompleted', args.image);
     } catch (error) {
       this.emit('commandFailed', args.image, error);
@@ -34,8 +40,14 @@ export class TaskCommander extends TypedEmitter<DockerCommanderEvents & HelmComm
   }
 
   public async pull(args: DockerPullArgs): Promise<void> {
+
+    let childLogger: ILogger | undefined = undefined;
+    if (this.options?.verbose === true) {
+      childLogger = this.options.logger?.child({ image: args.image }, { level: 'debug' });
+    }
+
     try {
-      await dockerPull({ ...args, ...this.options });
+      await dockerPull({ ...args, logger: childLogger });
       this.emit('pullCompleted', args.image);
     } catch (error) {
       this.emit('commandFailed', args.image, error);
@@ -43,8 +55,14 @@ export class TaskCommander extends TypedEmitter<DockerCommanderEvents & HelmComm
   }
 
   public async save(args: DockerSaveArgs): Promise<void> {
+
+    let childLogger: ILogger | undefined = undefined;
+    if (this.options?.verbose === true) {
+      childLogger = this.options.logger?.child({ image: args.image }, { level: 'debug' });
+    }
+
     try {
-      await dockerSave({ ...args, ...this.options });
+      await dockerSave({ ...args, logger: childLogger });
       this.emit('saveCompleted', args.image);
     } catch (error) {
       this.emit('commandFailed', args.image, error);
@@ -52,8 +70,14 @@ export class TaskCommander extends TypedEmitter<DockerCommanderEvents & HelmComm
   }
 
   public async package(args: HelmPackageArgs): Promise<void> {
+
+    let childLogger: ILogger | undefined = undefined;
+    if (this.options?.verbose === true) {
+      childLogger = this.options.logger?.child({ helmPackage: args.helmPackage }, { level: 'debug' });
+    }
+
     try {
-      await helmPackage({ ...args, ...this.options });
+      await helmPackage({ ...args, logger: childLogger });
       this.emit('packageCompleted', args.helmPackage);
     } catch (error) {
       this.emit('commandFailed', args.helmPackage, error);

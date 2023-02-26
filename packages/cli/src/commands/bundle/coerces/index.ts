@@ -13,7 +13,11 @@ import { NAME_TO_REF_DELIMITER, OWNER_TO_NAME_DELIMITER } from '../constants';
 const repoStrToRepoId = (repo: string): RepositoryId => {
   const [ownerAndName, ref] = repo.split(NAME_TO_REF_DELIMITER);
   const [name, owner] = ownerAndName.split(OWNER_TO_NAME_DELIMITER).reverse();
-  return { owner: (owner as string | undefined) ?? GITHUB_ORG, name, ref: (ref as string | undefined) ?? DEFAULT_BRANCH };
+  return {
+    name,
+    owner: (owner as string | undefined) ?? GITHUB_ORG,
+    ref: (ref as string | undefined) ?? DEFAULT_BRANCH
+};
 };
 
 export const repositoryCoerce: CoerceFunc<string, RepositoryId> = (arg) => {
@@ -39,7 +43,7 @@ export const repositoriesCoerce: CoerceFunc<string[], RepositoryId[]> = (arg) =>
     throw new CheckError('repository must be in the format of {owner?}/{name}@{ref}', 'repositories', arg);
   }
 
-  return repos.map((repo) => repoStrToRepoId(repo));
+  return repos.map(repoStrToRepoId);
 };
 
 export const inputCoerce: CoerceFunc<string, Repository[]> = (path) => {
