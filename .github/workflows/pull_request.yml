@@ -9,7 +9,7 @@ jobs:
 
     strategy:
       matrix:
-        node: [14.x, 16.x, 18.x]
+        node: [16.x, 18.x]
 
     steps:
       - name: Check out Git repository
@@ -40,7 +40,7 @@ jobs:
 
     strategy:
       matrix:
-        node: [14.x, 16.x, 18.x]
+        node: [16.x, 18.x]
 
     steps:
       - name: Check out TS Project Git repository
