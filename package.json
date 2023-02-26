@@ -2,7 +2,9 @@
   "name": "bundler",
   "version": "1.0.0",
   "description": "a monorepo consisting of all bundler related packages",
-  "scripts": {},
+  "scripts": {
+    "prepare": "husky install"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/MapColonies/bundler.git"
@@ -16,12 +18,6 @@
   "workspaces": [
     "packages/*"
   ],
-  "husky": {
-    "hooks": {
-      "pre-commit": "pretty-quick --staged",
-      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
-    }
-  },
   "config": {
     "commitizen": {
       "path": "./node_modules/cz-conventional-changelog"
@@ -34,7 +30,7 @@
     "@types/node": "^18.11.18",
     "commitlint": "^17.3.0",
     "cz-conventional-changelog": "^3.3.0",
-    "husky": "8.0.3",
+    "husky": "^8.0.3",
     "jest": "^29.3.1",
     "lerna": "^6.3.0",
     "ts-jest": "^29.0.5",
