@@ -16,8 +16,8 @@ const repoStrToRepoId = (repo: string): RepositoryId => {
   return {
     name,
     owner: (owner as string | undefined) ?? GITHUB_ORG,
-    ref: (ref as string | undefined) ?? DEFAULT_BRANCH
-};
+    ref: (ref as string | undefined) ?? DEFAULT_BRANCH,
+  };
 };
 
 export const repositoryCoerce: CoerceFunc<string, RepositoryId> = (arg) => {
