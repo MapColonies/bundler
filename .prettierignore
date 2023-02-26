@@ -13,4 +13,4 @@ reports
 docs
 node_modules
 *.html
-jest.config.base.js
+jest.config*.js
