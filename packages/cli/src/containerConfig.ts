@@ -3,7 +3,7 @@ import { rm } from 'fs/promises';
 import { existsSync } from 'fs';
 import pino from 'pino';
 import { CleanupRegistry } from '@map-colonies/cleanup-registry';
-import { ExitCodes } from '@bundler/common';
+import { ExitCodes } from '@map-colonies/bundler-common';
 import { DependencyContainer } from 'tsyringe/dist/typings/types';
 import { SERVICES, CLI_BUILDER, ON_SIGNAL } from './common/constants';
 import { InjectionObject, registerDependencies } from './common/dependencyRegistration';

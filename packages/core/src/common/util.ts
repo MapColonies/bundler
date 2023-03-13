@@ -1,7 +1,7 @@
 import { join } from 'path';
 import { writeFile } from 'fs/promises';
-import { GithubClient, RepositoryId } from '@bundler/github';
-import { GITHUB_ORG } from '@bundler/common';
+import { GithubClient, RepositoryId } from '@map-colonies/bundler-github';
+import { GITHUB_ORG } from '@map-colonies/bundler-common';
 import { RepositoryProvider } from '../repositoryProvider/repositoryProvider';
 import { DEFAULT_BRANCH, DEFAULT_BUNDLER_DIR, DEFAULT_BUNDLER_OUTPUT, TEMP_DIR } from '../bundler/constants';
 import { DefaultBundlerOptions } from '../bundler/interfaces';

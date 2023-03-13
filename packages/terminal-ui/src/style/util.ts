@@ -1,5 +1,5 @@
 import { EOL } from 'os';
-import { Status } from '@bundler/common';
+import { Status } from '@map-colonies/bundler-common';
 import chalk, { ChalkFunction } from 'chalk';
 import { getSpinnerFrame } from './styler';
 

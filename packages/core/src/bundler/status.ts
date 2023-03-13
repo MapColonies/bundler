@@ -1,4 +1,4 @@
-import { Statused } from '@bundler/common';
+import { Statused } from '@map-colonies/bundler-common';
 import { TaskKind } from './interfaces';
 
 export enum BundlerStage {

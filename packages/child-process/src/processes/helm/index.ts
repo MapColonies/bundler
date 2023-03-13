@@ -1,4 +1,4 @@
-import { Identifiable, ILogger } from '@bundler/common';
+import { Identifiable, ILogger } from '@map-colonies/bundler-common';
 import { spawnChild } from '../../spawner/spawner';
 
 const HELM_EXEC = 'helm';

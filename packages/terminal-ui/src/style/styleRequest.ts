@@ -1,4 +1,4 @@
-import { Status } from '@bundler/common';
+import { Status } from '@map-colonies/bundler-common';
 import { GlobalOptions as ColumnifyOptions } from 'columnify';
 import { ChalkFunction } from 'chalk';
 import { Level } from './util';

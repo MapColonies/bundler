@@ -1,5 +1,5 @@
 {
-  "name": "@bundler/github",
+  "name": "@map-colonies/bundler-github",
   "version": "1.0.0",
   "description": "bundler github",
   "main": "./dist/index.js",
@@ -29,7 +29,7 @@
     "dist/**/*"
   ],
   "dependencies": {
-    "@bundler/common": "^1.0.0",
+    "@map-colonies/bundler-common": "^1.0.0",
     "@octokit/rest": "19.0.5"
   },
   "devDependencies": {
@@ -50,5 +50,6 @@
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "gitHead": "8312fdbe683ad57ed30e0f1d6de902c48984d28e"
 }

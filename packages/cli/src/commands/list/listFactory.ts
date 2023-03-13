@@ -1,9 +1,9 @@
-import { ExitCodes, Status } from '@bundler/common';
-import { Renderer, createTerminalStreamer, ListStyleRequestBuilder as Builder } from '@bundler/terminal-ui';
+import { ExitCodes, Status } from '@map-colonies/bundler-common';
+import { Renderer, createTerminalStreamer, ListStyleRequestBuilder as Builder } from '@map-colonies/bundler-terminal-ui';
 import { FactoryFunction } from 'tsyringe';
 import { Logger } from 'pino';
-import { GithubRepository, RepositoryType, IGithubClient } from '@bundler/github';
-import { GITHUB_ORG } from '@bundler/common';
+import { GithubRepository, RepositoryType, IGithubClient } from '@map-colonies/bundler-github';
+import { GITHUB_ORG } from '@map-colonies/bundler-common';
 import { Arguments, Argv, CommandModule } from 'yargs';
 import { GlobalArguments } from '../../cliBuilderFactory';
 import { SERVICES, TERMINAL_STREAM } from '../../common/constants';

@@ -1,7 +1,7 @@
 import { EOL } from 'os';
 import yargs, { Argv, CommandModule } from 'yargs';
 import { FactoryFunction } from 'tsyringe';
-import { ExitCodes } from '@bundler/common';
+import { ExitCodes } from '@map-colonies/bundler-common';
 import { Logger } from 'pino';
 import chalk from 'chalk';
 import { BUNDLE_COMMAND_FACTORY } from './commands/bundle/constants';

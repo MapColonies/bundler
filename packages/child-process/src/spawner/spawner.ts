@@ -1,6 +1,6 @@
 import * as readline from 'readline';
 import { PassThrough } from 'stream';
-import { ILogger, NOT_FOUND_INDEX } from '@bundler/common';
+import { ILogger, NOT_FOUND_INDEX } from '@map-colonies/bundler-common';
 import execa, { ExecaChildProcess } from 'execa';
 
 const children: { executable: string; childProcess: ExecaChildProcess }[] = [];

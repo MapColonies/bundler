@@ -1,5 +1,5 @@
 {
-  "name": "bundler",
+  "name": "@map-colonies/bundler",
   "version": "1.0.0",
   "description": "a monorepo consisting of all bundler related packages",
   "scripts": {

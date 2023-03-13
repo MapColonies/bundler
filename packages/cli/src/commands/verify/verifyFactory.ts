@@ -1,10 +1,10 @@
-import { ExitCodes, ILogger, Status, VerifyEntity } from '@bundler/common';
+import { ExitCodes, ILogger, Status, VerifyEntity } from '@map-colonies/bundler-common';
 import { FactoryFunction } from 'tsyringe';
 import { Logger } from 'pino';
-import { IGithubClient } from '@bundler/github';
+import { IGithubClient } from '@map-colonies/bundler-github';
 import { Argv, CommandModule } from 'yargs';
-import { Renderer, createTerminalStreamer, VerifyStyleRequestBuilder as Builder } from '@bundler/terminal-ui';
-import { dockerVersion as dockerVerify, helmVersion as helmVerify } from '@bundler/child-process';
+import { Renderer, createTerminalStreamer, VerifyStyleRequestBuilder as Builder } from '@map-colonies/bundler-terminal-ui';
+import { dockerVersion as dockerVerify, helmVersion as helmVerify } from '@map-colonies/bundler-child-process';
 import { GlobalArguments } from '../../cliBuilderFactory';
 import { SERVICES, TERMINAL_STREAM } from '../../common/constants';
 import { command, describe } from './constants';

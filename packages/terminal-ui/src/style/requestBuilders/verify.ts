@@ -1,4 +1,4 @@
-import { Status, VerifyEntity } from '@bundler/common';
+import { Status, VerifyEntity } from '@map-colonies/bundler-common';
 import { Level, PADDING } from '../util';
 import { ExtendedColumnifyOptions, StyleRequest } from '../styleRequest';
 import { StyleRequestBuilder, PREFIX } from '.';

@@ -1,6 +1,6 @@
 import { Arguments } from 'yargs';
 import { DependencyContainer } from 'tsyringe';
-import { ILogger } from '@bundler/common';
+import { ILogger } from '@map-colonies/bundler-common';
 import { CheckError } from '../common/errors';
 
 export type CheckFunc<T> = (args: Arguments<T>) => Promise<true> | true;

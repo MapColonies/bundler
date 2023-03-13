@@ -1,5 +1,5 @@
 import Lodash from 'lodash';
-import { NOT_FOUND_INDEX } from '@bundler/common';
+import { NOT_FOUND_INDEX } from '@map-colonies/bundler-common';
 
 export interface IConfig {
   get: <T>(setting: string) => T;

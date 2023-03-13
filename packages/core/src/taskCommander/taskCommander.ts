@@ -1,5 +1,5 @@
 import { TypedEmitter } from 'tiny-typed-emitter';
-import { ILogger, IParentLogger } from '@bundler/common';
+import { ILogger, IParentLogger } from '@map-colonies/bundler-common';
 import {
   dockerBuild,
   DockerBuildArgs,
@@ -10,7 +10,7 @@ import {
   helmPackage,
   HelmPackageArgs,
   terminateChildren,
-} from '@bundler/child-process';
+} from '@map-colonies/bundler-child-process';
 import { DownloadArgs, httpDownload } from '../http/download';
 import { DockerCommanderEvents, HelmCommanderEvents, HttpCommanderEvents } from './events';
 

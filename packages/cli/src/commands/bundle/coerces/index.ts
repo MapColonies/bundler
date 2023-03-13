@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
-import { DEFAULT_BRANCH, Repository } from '@bundler/core';
-import { GITHUB_ORG } from '@bundler/common';
-import { RepositoryId } from '@bundler/github';
+import { DEFAULT_BRANCH, Repository } from '@map-colonies/bundler-core';
+import { GITHUB_ORG } from '@map-colonies/bundler-common';
+import { RepositoryId } from '@map-colonies/bundler-github';
 import { CheckError } from '../../../common/errors';
 import { isRepoValid } from '../../../validation/formats';
 import { INPUT_BUNDLE_REQUEST_SCHEMA } from '../../../validation/schemas';

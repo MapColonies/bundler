@@ -1,4 +1,4 @@
-import { ExitCodes } from '@bundler/common';
+import { ExitCodes } from '@map-colonies/bundler-common';
 import { StreamFunc } from '../stream/terminalStreamer';
 import { style } from '../style/styler';
 import { StyleRequest } from '../style/styleRequest';

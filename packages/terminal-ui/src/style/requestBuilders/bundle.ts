@@ -1,6 +1,6 @@
 import { EOL } from 'os';
-import { BundlerStage, BundleStatus } from '@bundler/core';
-import { Status } from '@bundler/common';
+import { BundlerStage, BundleStatus } from '@map-colonies/bundler-core';
+import { Status } from '@map-colonies/bundler-common';
 import { Level, PADDING } from '../util';
 import { Content, ExtendedColumnifyOptions, StyleRequest, Title } from '../styleRequest';
 import { PREFIX, StyleRequestBuilder } from '.';

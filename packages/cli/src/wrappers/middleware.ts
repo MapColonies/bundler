@@ -1,7 +1,7 @@
 import { Arguments, MiddlewareFunction } from 'yargs';
 import { DependencyContainer } from 'tsyringe';
 import pino, { Logger } from 'pino';
-import { GithubClient } from '@bundler/github';
+import { GithubClient } from '@map-colonies/bundler-github';
 import { GlobalArguments } from '../cliBuilderFactory';
 import { SERVICES } from '../common/constants';
 import { registerDependencies } from '../common/dependencyRegistration';

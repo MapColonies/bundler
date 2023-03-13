@@ -1,2 +1,2 @@
-# @bundler/terminal-ui
-this package provides the `@bundler/cli` a terminal user interface
+# @map-colonies/bundler-terminal-ui
+this package provides the `@map-colonies/bundler-cli` a terminal user interface

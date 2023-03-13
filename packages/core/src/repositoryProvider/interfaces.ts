@@ -1,4 +1,4 @@
-import { RepositoryId } from '@bundler/github';
+import { RepositoryId } from '@map-colonies/bundler-github';
 import { Repository, RepositoryProfile, RepositoryTask } from '../bundler/interfaces';
 
 export interface IRepositoryProvider {

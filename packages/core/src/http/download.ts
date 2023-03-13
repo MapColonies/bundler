@@ -1,4 +1,4 @@
-import { Identifiable } from '@bundler/common';
+import { Identifiable } from '@map-colonies/bundler-common';
 import axios from 'axios';
 import { HTTP_CLIENT_TIMEOUT } from '../bundler/constants';
 import { writeBuffer } from '../common/util';

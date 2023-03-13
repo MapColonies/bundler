@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/naming-convention */ // octokit uses snake_case
 import { Octokit } from '@octokit/rest';
 import { OctokitOptions } from '@octokit/core/dist-types/types';
-import { ILogger } from '@bundler/common';
-import { GITHUB_ORG } from '@bundler/common';
+import { ILogger } from '@map-colonies/bundler-common';
+import { GITHUB_ORG } from '@map-colonies/bundler-common';
 import { IGithubClient, RepositoryFilter, RepositoryId } from './interfaces';
 import { GithubAsset, GithubRepository, MediaType, RepositoryType } from './types';
 import { GITHUB_API_URL, GITHUB_MAX_PAGINATION_LIMIT } from './constants';

@@ -1,5 +1,5 @@
-import { HelmPackage, Image, TerminationResult } from '@bundler/child-process';
-import { Identifiable } from '@bundler/common';
+import { HelmPackage, Image, TerminationResult } from '@map-colonies/bundler-child-process';
+import { Identifiable } from '@map-colonies/bundler-common';
 import { DownloadObject } from '../http/download';
 
 export interface BaseCommanderEvents {

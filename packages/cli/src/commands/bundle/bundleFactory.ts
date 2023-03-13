@@ -1,8 +1,8 @@
-import { Bundler, BundlerOptions, CleanupMode, BundleStatus, Repository } from '@bundler/core';
-import { IGithubClient, RepositoryId } from '@bundler/github';
-import { ExitCodes } from '@bundler/common';
+import { Bundler, BundlerOptions, CleanupMode, BundleStatus, Repository } from '@map-colonies/bundler-core';
+import { IGithubClient, RepositoryId } from '@map-colonies/bundler-github';
+import { ExitCodes } from '@map-colonies/bundler-common';
 import { FactoryFunction } from 'tsyringe';
-import { Renderer, createTerminalStreamer, BundleStyleRequestBuilder as Builder } from '@bundler/terminal-ui';
+import { Renderer, createTerminalStreamer, BundleStyleRequestBuilder as Builder } from '@map-colonies/bundler-terminal-ui';
 import { Logger } from 'pino';
 import { Arguments, Argv, CommandModule } from 'yargs';
 import { SERVICES, TERMINAL_STREAM } from '../../common/constants';

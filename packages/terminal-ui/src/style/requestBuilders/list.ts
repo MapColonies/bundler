@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { Status } from '@bundler/common';
+import { Status } from '@map-colonies/bundler-common';
 import { Level } from '../util';
 import { ExtendedColumnifyOptions, StyleRequest } from '../styleRequest';
 import { PREFIX, StyleRequestBuilder } from '.';

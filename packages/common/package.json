@@ -1,5 +1,5 @@
 {
-  "name": "@bundler/common",
+  "name": "@map-colonies/bundler-common",
   "version": "1.0.0",
   "description": "bundler common",
   "main": "./dist/index.js",

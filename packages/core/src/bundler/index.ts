@@ -1,10 +1,10 @@
 import { hostname } from 'os';
 import { mkdir, rm, writeFile } from 'fs/promises';
 import { basename, dirname, join } from 'path';
-import { GITHUB_ORG, ILogger, Status } from '@bundler/common';
-import { DockerSaveArgs, HelmPackage, Image, TerminationResult } from '@bundler/child-process';
+import { GITHUB_ORG, ILogger, Status } from '@map-colonies/bundler-common';
+import { DockerSaveArgs, HelmPackage, Image, TerminationResult } from '@map-colonies/bundler-child-process';
 import { nanoid } from 'nanoid';
-import { IGithubClient } from '@bundler/github';
+import { IGithubClient } from '@map-colonies/bundler-github';
 import * as tar from 'tar';
 import { TypedEmitter } from 'tiny-typed-emitter';
 import { dump } from 'js-yaml';

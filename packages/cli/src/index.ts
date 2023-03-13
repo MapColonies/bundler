@@ -4,7 +4,7 @@ import 'reflect-metadata';
 import { hideBin } from 'yargs/helpers';
 import { Logger } from 'pino';
 import { DependencyContainer } from 'tsyringe';
-import { ExitCodes } from '@bundler/common';
+import { ExitCodes } from '@map-colonies/bundler-common';
 import { ON_SIGNAL, SERVICES } from './common/constants';
 import { getCli } from './cli';
 
