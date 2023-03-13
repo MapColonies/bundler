@@ -1,0 +1,37 @@
+[
+  {
+    "repository": "osm-sync-tracker@v3.3.0",
+    "buildImageLocally": true,
+    "includeAssets": true,
+    "includeMigrations": true,
+    "includeHelmPackage": true
+  },
+  {
+    "repository": "id-2-osm@v2.0.0",
+    "includeAssets": true,
+    "includeMigrations": true,
+    "includeHelmPackage": true
+  },
+  {
+    "repository": "external-to-osm-tag-mapping@v1.7.5",
+    "buildImageLocally": false,
+    "includeAssets": false,
+    "includeHelmPackage": false
+  },
+  {
+    "repository": "osm-change-generator-server@v1.4.4",
+    "buildImageLocally": true,
+    "includeAssets": true,
+    "includeHelmPackage": true
+  },
+  {
+    "repository": "change-merger@v1.3.4",
+    "buildImageLocally": false,
+    "includeAssets": true,
+    "includeHelmPackage": true
+  },
+  {
+    "repository": "id-merger@v1.3.1",
+    "includeHelmPackage": true
+  }
+]
