@@ -27,7 +27,7 @@
     "dist/**/*"
   ],
   "dependencies": {
-    "@bundler/common": "*",
+    "@bundler/common": "^1.0.0",
     "execa": "^5.1.1"
   },
   "devDependencies": {

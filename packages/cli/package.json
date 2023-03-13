@@ -27,11 +27,11 @@
     "url": "https://github.com/MapColonies/bundler/issues"
   },
   "dependencies": {
-    "@bundler/child-process": "*",
-    "@bundler/common": "*",
-    "@bundler/core": "*",
-    "@bundler/github": "*",
-    "@bundler/terminal-ui": "*",
+    "@bundler/child-process": "^1.0.0",
+    "@bundler/common": "^1.0.0",
+    "@bundler/core": "^1.0.0",
+    "@bundler/github": "^1.0.0",
+    "@bundler/terminal-ui": "^1.0.0",
     "@map-colonies/cleanup-registry": "^1.1.0",
     "@map-colonies/read-pkg": "0.0.1",
     "ajv": "^8.12.0",

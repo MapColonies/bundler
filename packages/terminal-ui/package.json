@@ -27,8 +27,8 @@
     "dist/**/*"
   ],
   "dependencies": {
-    "@bundler/common": "*",
-    "@bundler/core": "*",
+    "@bundler/common": "^1.0.0",
+    "@bundler/core": "^1.0.0",
     "chalk": "^4.1.2",
     "cli-spinners": "^2.7.0",
     "columnify": "^1.6.0"
