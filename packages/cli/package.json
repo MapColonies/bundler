@@ -1,6 +1,6 @@
 {
   "name": "@map-colonies/bundler-cli",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "bundler cli",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -27,11 +27,11 @@
     "url": "https://github.com/MapColonies/bundler/issues"
   },
   "dependencies": {
-    "@map-colonies/bundler-child-process": "^1.0.0",
-    "@map-colonies/bundler-common": "^1.0.0",
-    "@map-colonies/bundler-core": "^1.0.0",
-    "@map-colonies/bundler-github": "^1.0.0",
-    "@map-colonies/bundler-terminal-ui": "^1.0.0",
+    "@map-colonies/bundler-child-process": "^1.0.1",
+    "@map-colonies/bundler-common": "^1.0.1",
+    "@map-colonies/bundler-core": "^1.0.1",
+    "@map-colonies/bundler-github": "^1.0.1",
+    "@map-colonies/bundler-terminal-ui": "^1.0.1",
     "@map-colonies/cleanup-registry": "^1.1.0",
     "@map-colonies/read-pkg": "0.0.1",
     "ajv": "^8.12.0",

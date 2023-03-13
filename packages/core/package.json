@@ -1,6 +1,6 @@
 {
   "name": "@map-colonies/bundler-core",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "bundler core",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -27,9 +27,9 @@
     "dist/**/*"
   ],
   "dependencies": {
-    "@map-colonies/bundler-child-process": "^1.0.0",
-    "@map-colonies/bundler-common": "^1.0.0",
-    "@map-colonies/bundler-github": "^1.0.0",
+    "@map-colonies/bundler-child-process": "^1.0.1",
+    "@map-colonies/bundler-common": "^1.0.1",
+    "@map-colonies/bundler-github": "^1.0.1",
     "axios": "^1.2.2",
     "concat-stream": "^2.0.0",
     "js-yaml": "^4.1.0",
