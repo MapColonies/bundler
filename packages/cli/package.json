@@ -22,6 +22,12 @@
     "url": "git+https://github.com/MapColonies/bundler.git"
   },
   "author": "MapColonies",
+  "bin": {
+    "@map-colonies/bundler-cli": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/MapColonies/bundler/issues"
