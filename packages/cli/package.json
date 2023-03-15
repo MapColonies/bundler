@@ -1,6 +1,6 @@
 {
   "name": "@map-colonies/bundler-cli",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "bundler cli",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
