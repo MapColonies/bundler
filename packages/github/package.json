@@ -26,7 +26,7 @@
   "author": "MapColonies",
   "license": "ISC",
   "files": [
-    "dist/**/*"
+    "dist"
   ],
   "dependencies": {
     "@map-colonies/bundler-common": "^1.0.1",

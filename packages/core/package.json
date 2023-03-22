@@ -24,7 +24,7 @@
   "author": "MapColonies",
   "license": "ISC",
   "files": [
-    "dist/**/*"
+    "dist"
   ],
   "dependencies": {
     "@map-colonies/bundler-child-process": "^1.0.1",
