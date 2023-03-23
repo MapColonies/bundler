@@ -1,6 +1,6 @@
 {
   "name": "@map-colonies/bundler-child-process",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "bundler child-process handling",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -27,7 +27,7 @@
     "dist"
   ],
   "dependencies": {
-    "@map-colonies/bundler-common": "^1.0.1",
+    "@map-colonies/bundler-common": "^1.0.3",
     "execa": "^5.1.1"
   },
   "devDependencies": {

@@ -1,6 +1,6 @@
 {
   "name": "@map-colonies/bundler-github",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "bundler github",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -29,7 +29,7 @@
     "dist"
   ],
   "dependencies": {
-    "@map-colonies/bundler-common": "^1.0.1",
+    "@map-colonies/bundler-common": "^1.0.3",
     "@octokit/rest": "19.0.5"
   },
   "devDependencies": {

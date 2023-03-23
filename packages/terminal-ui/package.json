@@ -1,6 +1,6 @@
 {
   "name": "@map-colonies/bundler-terminal-ui",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "bundler-terminal-ui",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -27,8 +27,8 @@
     "dist"
   ],
   "dependencies": {
-    "@map-colonies/bundler-common": "^1.0.1",
-    "@map-colonies/bundler-core": "^1.0.1",
+    "@map-colonies/bundler-common": "^1.0.3",
+    "@map-colonies/bundler-core": "^1.0.3",
     "chalk": "^4.1.2",
     "cli-spinners": "^2.7.0",
     "columnify": "^1.6.0"
