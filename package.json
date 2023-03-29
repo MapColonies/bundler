@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "a monorepo consisting of all bundler related packages",
   "scripts": {
-    "prepare": "husky install"
+    "prepare": "node -e \"if (process.env.NODE_ENV !== 'production'){process.exit(1)} \" || husky install"
   },
   "repository": {
     "type": "git",

@@ -12,9 +12,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "prebuild": "npm run clean",
-    "build": "tsc --project tsconfig.build.json && npm run assets:copy",
+    "build": "tsc --project tsconfig.build.json",
     "start": "npm run build && cd dist && node ./index.js",
-    "assets:copy": "copyfiles ./package.json dist",
     "clean": "rimraf dist"
   },
   "repository": {
@@ -39,7 +38,6 @@
     "@map-colonies/bundler-github": "^1.0.3",
     "@map-colonies/bundler-terminal-ui": "^1.0.3",
     "@map-colonies/cleanup-registry": "^1.1.0",
-    "@map-colonies/read-pkg": "0.0.1",
     "ajv": "^8.12.0",
     "ajv-formats": "^2.1.1",
     "ajv-keywords": "^5.1.0",
