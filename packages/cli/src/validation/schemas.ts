@@ -18,6 +18,14 @@ export const INPUT_BUNDLE_REQUEST_SCHEMA: JSONSchemaType<InputFileBundleRequest[
         type: 'boolean',
         nullable: true,
       },
+      buildArgs: {
+        type: 'object',
+        additionalProperties: {
+          type: 'string',
+        },
+        nullable: true,
+        required: [],
+      },
       includeMigrations: {
         type: 'boolean',
         nullable: true,

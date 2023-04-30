@@ -20,6 +20,7 @@ export interface DockerBuildArgs extends EnvOptions {
   dockerFile: string;
   image: Image;
   path: string;
+  buildArgs?: Record<string, string>;
 }
 
 export interface DockerPullArgs {
@@ -34,9 +35,20 @@ export interface DockerSaveArgs {
 }
 
 export const dockerBuild = async (args: DockerBuildArgs & { logger?: ILogger }): Promise<void> => {
-  const { dockerFile, image, path, envOptions, logger } = args;
+  const { buildArgs, dockerFile, image, path, envOptions, logger } = args;
 
-  const childProcess = spawnChild(DOCKER_EXEC, Command.BUILD, ['-f', dockerFile, '-t', `${image.name}:${image.tag}`, path], envOptions, logger);
+  let buildArgsArray: string[] = [];
+  if (buildArgs !== undefined) {
+    buildArgsArray = Object.entries(buildArgs).map(([arg, value]) => `--build-arg=${arg}=${value}`);
+  }
+
+  const childProcess = spawnChild(
+    DOCKER_EXEC,
+    Command.BUILD,
+    [...buildArgsArray, '-f', dockerFile, '-t', `${image.name}:${image.tag}`, path],
+    envOptions,
+    logger
+  );
 
   const { exitCode, stderr } = await childProcess;
 

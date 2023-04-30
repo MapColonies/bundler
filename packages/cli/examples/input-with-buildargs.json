@@ -1,0 +1,27 @@
+[
+  {
+    "repository": "planet-dumper@arstotzka-integ",
+    "buildArgs": {
+      "POSTGRESQL_VERSION": "15",
+      "PLANET_DUMP_NG_TAG": "v1.2.3"
+    },
+    "buildImageLocally": true,
+    "includeAssets": false,
+    "includeMigrations": false,
+    "includeHelmPackage": true
+  },
+  {
+    "repository": "osmdbt-wrapper@arstotzka-integ",
+    "buildImageLocally": true,
+    "includeAssets": false,
+    "includeMigrations": false,
+    "includeHelmPackage": true
+  },
+  {
+    "repository": "osm2pgsql-wrapper@asrtotzka-integ",
+    "buildImageLocally": true,
+    "includeAssets": false,
+    "includeMigrations": false,
+    "includeHelmPackage": true
+  }
+]

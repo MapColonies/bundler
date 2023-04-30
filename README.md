@@ -75,7 +75,7 @@ Examples:
 - the repositories for a bundle can be provided in 3 fashions that conflict with one another:
     - `repository`: bundle a single repository
     - `repositories`: bundle multiple repositories
-    - `input`: the path to an input file consisting of the repositories to be bundled and their include artifacts flags. this option provides the possibility to have a mixture of include flags. once provided the other include flags will be dismissed, [see example](packages/cli/examples/input.json)
+    - `input`: the path to an input file consisting of the repositories to be bundled and their include artifacts flags. this option provides the possibility to have a mixture of include flags and also a `buildArgs` option (key value string pair object) that corrisponds to a truthy `buildImageLocally` flag. once provided the other include flags will be dismissed, [see example](packages/cli/examples/input.json)
 
 ### Manifest
 The bundler will produce a `manifest.yaml` file depicting the input parameters and the resulting output of the bundle. the file will be located in the bundle archive root level, [see example](packages/cli/examples/manifest.yaml)

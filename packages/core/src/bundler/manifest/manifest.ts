@@ -6,6 +6,7 @@ import { BundleDirs } from '../enums';
 interface RepositoryParameters {
   id: string;
   buildImageLocally?: boolean;
+  buildArgs?: Record<string, string>;
   includeMigrations?: boolean;
   includeAssets?: boolean;
   includeHelmPackage?: boolean;
@@ -55,6 +56,7 @@ export const manifestRepositories = (repositories: RepositoryProfile[]): Reposit
       includeMigrations: repo.includeMigrations,
       includeAssets: repo.includeAssets,
       includeHelmPackage: repo.includeHelmPackage,
+      buildArgs: repo.buildImageLocally === true ? repo.buildArgs : undefined,
     };
   });
 
