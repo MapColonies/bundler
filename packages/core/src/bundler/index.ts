@@ -2,7 +2,7 @@ import { hostname } from 'os';
 import { mkdir, rm, writeFile } from 'fs/promises';
 import { basename, dirname, join } from 'path';
 import { GITHUB_ORG, ILogger, Status } from '@map-colonies/bundler-common';
-import { DockerSaveArgs, HelmPackage, Image, TerminationResult } from '@map-colonies/bundler-child-process';
+import { DockerBuildArgs, DockerPullArgs, DockerSaveArgs, HelmPackage, Image, TerminationResult } from '@map-colonies/bundler-child-process';
 import { nanoid } from 'nanoid';
 import { IGithubClient } from '@map-colonies/bundler-github';
 import * as tar from 'tar';
@@ -226,17 +226,18 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
           };
 
           if (repo.buildImageLocally === true) {
-            const dockerBuildArgs = {
+            const dockerBuildArgs: DockerBuildArgs = {
               dockerFile: join(repo.extraction.path, task.archivedPath),
               path: join(repo.extraction.path, dirname(task.archivedPath)),
               image,
               // eslint-disable-next-line @typescript-eslint/naming-convention
               envOptions: { DOCKER_BUILDKIT: '1' },
+              buildArgs: repo.buildArgs,
             };
 
             commands.push(this.taskCommander.build(dockerBuildArgs));
           } else {
-            const dockerPullArgs = {
+            const dockerPullArgs: DockerPullArgs = {
               image,
               registry: DEFAULT_CONTAINER_REGISTRY,
             };

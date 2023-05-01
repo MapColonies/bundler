@@ -13,6 +13,7 @@ export type DefaultBundlerOptions = Required<Omit<BundlerOptions, 'logger'>>;
 export interface Repository {
   id: RepositoryId;
   buildImageLocally?: boolean;
+  buildArgs?: Record<string, string>;
   includeMigrations?: boolean;
   includeAssets?: boolean;
   includeHelmPackage?: boolean;
