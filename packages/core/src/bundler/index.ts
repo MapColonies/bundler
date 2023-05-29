@@ -1,7 +1,7 @@
 import { hostname } from 'os';
 import { mkdir, rm, writeFile } from 'fs/promises';
 import { basename, dirname, join } from 'path';
-import { GITHUB_ORG, ILogger, Status } from '@map-colonies/bundler-common';
+import { GITHUB_ORG, ILogger, Status, DEFAULT_CONTAINER_REGISTRY } from '@map-colonies/bundler-common';
 import { DockerBuildArgs, DockerPullArgs, DockerSaveArgs, HelmPackage, Image, TerminationResult } from '@map-colonies/bundler-child-process';
 import { nanoid } from 'nanoid';
 import { IGithubClient } from '@map-colonies/bundler-github';
@@ -13,16 +13,7 @@ import { IRepositoryProvider } from '../repositoryProvider/interfaces';
 import { provideDefaultOptions, stringifyRepositoryId, writeBuffer } from '../common/util';
 import { DownloadObject } from '../http/download';
 import { BundlerOptions, BundlePath, Repository, RepositoryProfile, TaskKind, BundlerEvents, BaseOutput, RepositoryTask } from './interfaces';
-import {
-  DEFAULT_BRANCH,
-  DOCKER_FILE,
-  TAR_FORMAT,
-  MIGRATIONS_DOCKER_FILE,
-  DEFAULT_CONTAINER_REGISTRY,
-  HELM_DIR,
-  MANIFEST_FILE,
-  CHECKSUM_FILE,
-} from './constants';
+import { DEFAULT_BRANCH, DOCKER_FILE, TAR_FORMAT, MIGRATIONS_DOCKER_FILE, HELM_DIR, MANIFEST_FILE, CHECKSUM_FILE } from './constants';
 import { BundleStatus, BundlerStage } from './status';
 import { Manifest, manifestRepositories } from './manifest/manifest';
 import { ChecksumOutput, checksumFile } from './checksum/checksum';

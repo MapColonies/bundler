@@ -28,7 +28,7 @@
   ],
   "dependencies": {
     "@map-colonies/bundler-child-process": "^1.0.3",
-    "@map-colonies/bundler-common": "^1.0.3",
+    "@map-colonies/bundler-common": "*",
     "@map-colonies/bundler-github": "^1.0.3",
     "axios": "^1.2.2",
     "concat-stream": "^2.0.0",

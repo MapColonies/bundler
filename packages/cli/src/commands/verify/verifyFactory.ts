@@ -1,4 +1,4 @@
-import { ExitCodes, ILogger, Status, VerifyEntity } from '@map-colonies/bundler-common';
+import { ExitCodes, ILogger, Status, VerifyEntity, DEFAULT_CONTAINER_REGISTRY } from '@map-colonies/bundler-common';
 import { FactoryFunction } from 'tsyringe';
 import { Logger } from 'pino';
 import { IGithubClient } from '@map-colonies/bundler-github';
@@ -8,7 +8,7 @@ import { dockerVersion as dockerVerify, helmVersion as helmVerify } from '@map-c
 import { GlobalArguments } from '../../cliBuilderFactory';
 import { SERVICES, TERMINAL_STREAM } from '../../common/constants';
 import { command, describe } from './constants';
-import { promiseResult } from './util';
+import { dockerRegistryVerification, promiseResult } from './util';
 
 export const verifyCommandFactory: FactoryFunction<CommandModule<GlobalArguments, GlobalArguments>> = (dependencyContainer) => {
   const builder = (args: Argv<GlobalArguments>): Argv<GlobalArguments> => {
@@ -34,6 +34,13 @@ export const verifyCommandFactory: FactoryFunction<CommandModule<GlobalArguments
       {
         name: 'docker',
         verification: dockerVerify({ logger: childLogger }),
+        result: {
+          status: Status.PENDING,
+        },
+      },
+      {
+        name: 'docker-pull-registry',
+        verification: dockerRegistryVerification([DEFAULT_CONTAINER_REGISTRY]),
         result: {
           status: Status.PENDING,
         },
@@ -73,6 +80,7 @@ export const verifyCommandFactory: FactoryFunction<CommandModule<GlobalArguments
           }
 
           logger.debug({ msg: 'verification result', entity: verifications[index] });
+
           (renderer as Renderer).current = (builder as Builder).build(verifications);
         });
       })

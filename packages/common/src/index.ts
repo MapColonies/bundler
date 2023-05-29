@@ -1,6 +1,7 @@
 export { ILogger, LogFn, IParentLogger } from './logging';
 
 export const GITHUB_ORG = 'MapColonies';
+export const DEFAULT_CONTAINER_REGISTRY = 'acrarolibotnonprod.azurecr.io';
 
 export const NOT_FOUND_INDEX = -1;
 

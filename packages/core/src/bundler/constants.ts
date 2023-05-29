@@ -4,7 +4,6 @@ export const HTTP_CLIENT_TIMEOUT = 10000;
 
 export const DEFAULT_BRANCH = 'master';
 export const DEFAULT_TAG = 'latest';
-export const DEFAULT_CONTAINER_REGISTRY = 'acrarolibotnonprod.azurecr.io';
 
 export const DOCKER_FILE = 'Dockerfile';
 export const MIGRATIONS_DOCKER_FILE = 'migrations.Dockerfile';
