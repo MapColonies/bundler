@@ -1,8 +1,8 @@
 import { join } from 'path';
 import { nanoid } from 'nanoid';
 import { RepositoryId } from '@map-colonies/bundler-github';
-import { NOT_FOUND_INDEX } from '@map-colonies/bundler-common';
-import { SOURCE_CODE_ARCHIVE, TAR_GZIP_ARCHIVE_FORMAT } from '../bundler/constants';
+import { NOT_FOUND_INDEX, TAR_GZIP_ARCHIVE_FORMAT } from '@map-colonies/bundler-common';
+import { SOURCE_CODE_ARCHIVE } from '../bundler/constants';
 import { BundlePath, Repository, RepositoryProfile, RepositoryTask } from '../bundler/interfaces';
 import { stringifyRepositoryId } from '../common/util';
 import { BundleDirs } from '../bundler/enums';

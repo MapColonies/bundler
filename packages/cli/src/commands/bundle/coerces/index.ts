@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 import { DEFAULT_BRANCH, Repository } from '@map-colonies/bundler-core';
-import { GITHUB_ORG } from '@map-colonies/bundler-common';
+import { GITHUB_ORG, TAR_FORMAT, TAR_GZIP_ARCHIVE_FORMAT } from '@map-colonies/bundler-common';
 import { RepositoryId } from '@map-colonies/bundler-github';
 import { CheckError } from '../../../common/errors';
 import { isRepoValid } from '../../../validation/formats';
@@ -61,4 +61,12 @@ export const inputCoerce: CoerceFunc<string, Repository[]> = (path) => {
   }
 
   return validationResponse.content.map((r) => ({ ...r, id: repoStrToRepoId(r.repository) }));
+};
+
+export const outputCoerce: CoerceFunc<string, string> = (path) => {
+  if (path === undefined) {
+    return;
+  }
+
+  return path.endsWith(`.${TAR_GZIP_ARCHIVE_FORMAT}`) || path.endsWith(`.${TAR_FORMAT}`) ? path : `${path}.${TAR_GZIP_ARCHIVE_FORMAT}`;
 };

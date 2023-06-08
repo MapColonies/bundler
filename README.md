@@ -46,6 +46,7 @@ Global Options:
 Options:
   -w, --workdir                                     the bundler working directory  [string] [default: "$HOME/.bundler-cli/workdir"]
   -o, --outputPath                                  the bundler output file path  [string] [required]
+  -O, --override                                    potentially override an existing output file path  [boolean] [default: false]
   -c, --cleanupMode                                 the bundle execution cleanup mode  [string] [choices: "none", "on-the-fly", "post"] [default: "on-the-fly"]
   -d, --isDebugMode, --debug                        child processes logs will be logged  [boolean] [default: false]
   -l, --buildImageLocally, --build-image-locally    build image(s) locally  [boolean] [default: false]
@@ -64,6 +65,8 @@ Examples:
 
 - `workdir`: a single bundle run command working directory, this directory consists mainly of temporary files and its cleaning up is defined by `cleanupMode`
 - `outputPath`: the path to the resulting bundle `tar.gz` archive. other than the bundle archive the bundler will output a [checksum file](#checksum)
+- `override`: potentially override an existing output file path
+- `isDebugMode`: child processes (docker, helm, etc.) logs will be logged as well
 - `cleanupMode`: supports 3 modes
     - `none`: won't clean up anything
     - `on-the-fly`: cleans dangling artifacts mid-execution time once they are unnecessary

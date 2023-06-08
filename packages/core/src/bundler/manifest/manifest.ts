@@ -1,4 +1,5 @@
-import { SOURCE_CODE_ARCHIVE, TAR_FORMAT, TAR_GZIP_ARCHIVE_FORMAT, TGZ_ARCHIVE_FORMAT } from '../constants';
+import { TAR_FORMAT, TAR_GZIP_ARCHIVE_FORMAT } from '@map-colonies/bundler-common';
+import { SOURCE_CODE_ARCHIVE, TGZ_ARCHIVE_FORMAT } from '../constants';
 import { BaseOutput, RepositoryProfile } from '../interfaces';
 import { stringifyRepositoryId } from '../../common/util';
 import { BundleDirs } from '../enums';

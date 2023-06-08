@@ -10,8 +10,8 @@ import { GlobalArguments } from '../../cliBuilderFactory';
 import { check as checkWrapper } from '../../wrappers/check';
 import { coerce as coerceWrapper } from '../../wrappers/coerce';
 import { IConfig } from '../../config/configStore';
-import { repoProvidedCheck } from './checks';
-import { inputCoerce, repositoriesCoerce, repositoryCoerce } from './coerces';
+import { outputValidityCheck, repoProvidedCheck } from './checks';
+import { inputCoerce, outputCoerce, repositoriesCoerce, repositoryCoerce } from './coerces';
 import { command, describe, EXAMPLES } from './constants';
 
 interface RequestArguments {
@@ -22,6 +22,7 @@ interface RequestArguments {
   includeMigrations: boolean;
   includeAssets: boolean;
   includeHelmPackage: boolean;
+  override?: boolean;
 }
 
 export interface InputFileBundleRequest extends Omit<Repository, 'id'> {
@@ -50,6 +51,7 @@ export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments
         type: 'string',
         demandOption: true,
       })
+      .option('override', { alias: 'O', describe: 'potentially override an existing output file path', type: 'boolean', default: false })
       .option('cleanupMode', {
         alias: 'c',
         describe: 'the bundle execution cleanup mode',
@@ -104,7 +106,9 @@ export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments
         conflicts: ['repository', 'repositories'],
       })
       .check(checkWrapper(repoProvidedCheck, logger))
+      .check(checkWrapper(outputValidityCheck, logger))
       .coerce('input', coerceWrapper(inputCoerce, logger))
+      .coerce('outputPath', coerceWrapper(outputCoerce, logger))
       .coerce('repository', coerceWrapper(repositoryCoerce, logger))
       .coerce('repositories', coerceWrapper(repositoriesCoerce, logger));
 
