@@ -16,6 +16,7 @@ export enum Level {
 export const statusToChalkMap: Record<Status, ChalkFunction> = {
   [Status.SUCCESS]: chalk.inverse.green,
   [Status.PENDING]: chalk.inverse.cyan,
+  [Status.WARNING]: chalk.inverse.yellow,
   [Status.FAILURE]: chalk.inverse.red,
 };
 
@@ -25,6 +26,8 @@ export const statusToMarkMap = (status: Status): string => {
       return chalk.green('✔');
     case Status.PENDING:
       return chalk.cyan(getSpinnerFrame());
+    case Status.WARNING:
+      return chalk.yellow('⚠');
     case Status.FAILURE:
       return chalk.red('✘');
   }

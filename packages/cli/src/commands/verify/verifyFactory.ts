@@ -34,6 +34,7 @@ export const verifyCommandFactory: FactoryFunction<CommandModule<GlobalArguments
       {
         name: 'docker',
         verification: dockerVerify({ logger: childLogger }),
+        erroredStatus: Status.FAILURE,
         result: {
           status: Status.PENDING,
         },
@@ -41,6 +42,7 @@ export const verifyCommandFactory: FactoryFunction<CommandModule<GlobalArguments
       {
         name: 'docker-pull-registry',
         verification: dockerRegistryVerification([DEFAULT_CONTAINER_REGISTRY]),
+        erroredStatus: Status.WARNING,
         result: {
           status: Status.PENDING,
         },
@@ -48,6 +50,7 @@ export const verifyCommandFactory: FactoryFunction<CommandModule<GlobalArguments
       {
         name: 'github',
         verification: githubClient.ping(),
+        erroredStatus: Status.FAILURE,
         result: {
           status: Status.PENDING,
         },
@@ -55,6 +58,7 @@ export const verifyCommandFactory: FactoryFunction<CommandModule<GlobalArguments
       {
         name: 'helm',
         verification: helmVerify({ logger: childLogger }),
+        erroredStatus: Status.FAILURE,
         result: {
           status: Status.PENDING,
         },
@@ -76,7 +80,7 @@ export const verifyCommandFactory: FactoryFunction<CommandModule<GlobalArguments
           if (error === undefined) {
             verifications[index] = { ...verifications[index], result: { status: Status.SUCCESS } };
           } else {
-            verifications[index] = { ...verifications[index], result: { status: Status.FAILURE, reason: error as Error } };
+            verifications[index] = { ...verifications[index], result: { status: verifications[index].erroredStatus, reason: error as Error } };
           }
 
           logger.debug({ msg: 'verification result', entity: verifications[index] });

@@ -4,6 +4,9 @@ export const GITHUB_ORG = 'MapColonies';
 export const DEFAULT_CONTAINER_REGISTRY = 'acrarolibotnonprod.azurecr.io';
 
 export const NOT_FOUND_INDEX = -1;
+export const TAR_FORMAT = 'tar';
+export const TAR_GZIP_ARCHIVE_FORMAT = 'tar.gz';
+export const CHECKSUM_FILE = 'checksum.yaml';
 
 /* eslint-disable @typescript-eslint/naming-convention */
 export const ExitCodes = {
@@ -14,6 +17,7 @@ export const ExitCodes = {
 
 export enum Status {
   SUCCESS = 'SUCCESS',
+  WARNING = 'WARNING',
   PENDING = 'PENDING',
   FAILURE = 'FAILURE',
 }
@@ -30,6 +34,7 @@ export interface Identifiable {
 export interface VerifyEntity {
   name: string;
   verification: Promise<void>;
+  erroredStatus: Status;
   result: {
     status: Status;
     content?: string;
