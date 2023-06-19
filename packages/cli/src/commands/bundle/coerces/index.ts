@@ -1,14 +1,23 @@
 import { readFileSync } from 'fs';
-import { DEFAULT_BRANCH, Repository } from '@map-colonies/bundler-core';
-import { GITHUB_ORG, TAR_FORMAT, TAR_GZIP_ARCHIVE_FORMAT } from '@map-colonies/bundler-common';
-import { RepositoryId } from '@map-colonies/bundler-github';
+import { DEFAULT_BRANCH } from '@map-colonies/bundler-core';
+import {
+  GITHUB_ORG,
+  NAME_TO_REF_DELIMITER,
+  OWNER_TO_NAME_DELIMITER,
+  Repository,
+  RepositoryBundleRequest,
+  RepositoryId,
+  TAR_FORMAT,
+  TAR_GZIP_ARCHIVE_FORMAT,
+} from '@map-colonies/bundler-common';
+import { load } from 'js-yaml';
 import { CheckError } from '../../../common/errors';
 import { isRepoValid } from '../../../validation/formats';
-import { INPUT_BUNDLE_REQUEST_SCHEMA } from '../../../validation/schemas';
-import { validate } from '../../../validation/validator';
+import { HAS_BUNDLE_REQUEST_SCHEMA, BUNDLE_REQUEST_SCHEMA, HasBundleRequest } from '../../../validation/schemas';
+import { validate, ValidationResponse } from '../../../validation/validator';
 import { CoerceFunc } from '../../../wrappers/coerce';
-import { InputFileBundleRequest } from '../bundleFactory';
-import { NAME_TO_REF_DELIMITER, OWNER_TO_NAME_DELIMITER } from '../constants';
+
+type ValidationFunc<T> = () => ValidationResponse<T>;
 
 const repoStrToRepoId = (repo: string): RepositoryId => {
   const [ownerAndName, ref] = repo.split(NAME_TO_REF_DELIMITER);
@@ -51,16 +60,42 @@ export const inputCoerce: CoerceFunc<string, Repository[]> = (path) => {
     return;
   }
 
+  const errors: string[] = [];
   const inputContent = readFileSync(path, 'utf-8');
-  const inputContentAsJson: unknown = JSON.parse(inputContent);
-  const validationResponse = validate<InputFileBundleRequest[]>(inputContentAsJson, INPUT_BUNDLE_REQUEST_SCHEMA);
 
-  if (!validationResponse.isValid || validationResponse.content === undefined) {
-    const { errors } = validationResponse;
-    throw new CheckError(errors ?? 'argument validation failure', 'input', path);
+  const jsonValidation: ValidationFunc<RepositoryBundleRequest[]> = () => {
+    try {
+      const inputContentAsJson: unknown = JSON.parse(inputContent);
+      return validate<RepositoryBundleRequest[]>(inputContentAsJson, BUNDLE_REQUEST_SCHEMA);
+    } catch (e) {
+      return { isValid: false, errors: 'json validation failure', content: undefined };
+    }
+  };
+
+  const yamlValidation: ValidationFunc<HasBundleRequest> = () => {
+    try {
+      const inputContentFromYamlAsJson = load(inputContent, { json: true });
+      return validate<HasBundleRequest>(inputContentFromYamlAsJson, HAS_BUNDLE_REQUEST_SCHEMA);
+    } catch (e) {
+      return { isValid: false, errors: 'yaml validation failure', content: undefined };
+    }
+  };
+
+  for (const validation of [jsonValidation, yamlValidation]) {
+    const response = validation();
+    if (!response.isValid) {
+      errors.push(response.errors ?? 'validation failure');
+      continue;
+    }
+
+    if (Array.isArray(response.content)) {
+      return response.content.map((r) => ({ ...r, id: repoStrToRepoId(r.repository) }));
+    }
+
+    return response.content?.input.map((r) => ({ ...r, id: repoStrToRepoId(r.repository) }));
   }
 
-  return validationResponse.content.map((r) => ({ ...r, id: repoStrToRepoId(r.repository) }));
+  throw new CheckError(errors.join('\n'), 'input', path);
 };
 
 export const outputCoerce: CoerceFunc<string, string> = (path) => {

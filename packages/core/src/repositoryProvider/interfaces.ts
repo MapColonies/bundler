@@ -1,5 +1,5 @@
-import { RepositoryId } from '@map-colonies/bundler-github';
-import { Repository, RepositoryProfile, RepositoryTask } from '../bundler/interfaces';
+import { Repository, RepositoryId } from '@map-colonies/bundler-common';
+import { RepositoryProfile, RepositoryTask } from '../bundler/interfaces';
 
 export interface IRepositoryProvider {
   addRepository: (repositoryProfile: Repository, workdir: string, bundleId: string) => void;

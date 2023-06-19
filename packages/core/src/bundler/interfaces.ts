@@ -1,23 +1,19 @@
 import { IParentLogger, Status } from '@map-colonies/bundler-common';
-import { IGithubClient, RepositoryId } from '@map-colonies/bundler-github';
+import { Repository } from '@map-colonies/bundler-common';
+import { IGithubClient } from '@map-colonies/bundler-github';
 import { IRepositoryProvider } from '../repositoryProvider/interfaces';
+import { ChecksumOutput } from './checksum/checksum';
 import { TaskStage } from './enums';
+import { Manifest } from './manifest/manifest';
 import { BundleStatus } from './status';
 
 export interface BundlerEvents {
   statusUpdated: (status: BundleStatus) => void;
+  manifestCreated: (manifest: Manifest) => Promise<void> | void;
+  checksumCreated: (checksum: ChecksumOutput) => Promise<void> | void;
 }
 
 export type DefaultBundlerOptions = Required<Omit<BundlerOptions, 'logger'>>;
-
-export interface Repository {
-  id: RepositoryId;
-  buildImageLocally?: boolean;
-  buildArgs?: Record<string, string>;
-  includeMigrations?: boolean;
-  includeAssets?: boolean;
-  includeHelmPackage?: boolean;
-}
 
 export interface RepositoryTask {
   id: string;

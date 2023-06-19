@@ -1,13 +1,16 @@
-import { Bundler, BundlerOptions, CleanupMode, BundleStatus, Repository } from '@map-colonies/bundler-core';
-import { IGithubClient, RepositoryId } from '@map-colonies/bundler-github';
-import { ExitCodes } from '@map-colonies/bundler-common';
+import { join, basename } from 'path';
+import { Bundler, BundlerOptions, CleanupMode, BundleStatus } from '@map-colonies/bundler-core';
+import { IGithubClient } from '@map-colonies/bundler-github';
+import { ExitCodes, MANIFEST_FILE, Repository, RepositoryId } from '@map-colonies/bundler-common';
 import { FactoryFunction } from 'tsyringe';
 import { Renderer, createTerminalStreamer, BundleStyleRequestBuilder as Builder } from '@map-colonies/bundler-terminal-ui';
 import { Logger } from 'pino';
 import { Arguments, Argv, CommandModule } from 'yargs';
+import { dump } from 'js-yaml';
 import { SERVICES, TERMINAL_STREAM } from '../../common/constants';
 import { GlobalArguments } from '../../cliBuilderFactory';
 import { check as checkWrapper } from '../../wrappers/check';
+import { writeFileRecursive } from '../../common/util';
 import { coerce as coerceWrapper } from '../../wrappers/coerce';
 import { IConfig } from '../../config/configStore';
 import { outputValidityCheck, repoProvidedCheck } from './checks';
@@ -23,10 +26,6 @@ interface RequestArguments {
   includeAssets: boolean;
   includeHelmPackage: boolean;
   override?: boolean;
-}
-
-export interface InputFileBundleRequest extends Omit<Repository, 'id'> {
-  repository: string;
 }
 
 export type BundleArguments = GlobalArguments & Required<Omit<BundlerOptions, 'logger' | 'githubClient' | 'provider'> & RequestArguments>;
@@ -148,6 +147,16 @@ export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments
     logger.info({ msg: 'executing command', command, args: { workdir, outputPath, cleanupMode, isDebugMode, verbose }, payload: bundleRequest });
 
     const bundler = new Bundler({ workdir, outputPath, cleanupMode, isDebugMode, verbose, githubClient, logger });
+
+    bundler.on('manifestCreated', async (manifest) => {
+      const path = join(configStore.get<string>('historyDir'), manifest.createdAt, MANIFEST_FILE);
+      await writeFileRecursive(path, dump(manifest));
+    });
+
+    bundler.on('checksumCreated', async (checksum) => {
+      const path = join(configStore.get<string>('historyDir'), checksum.createdAt, basename(checksum.destination));
+      await writeFileRecursive(path, dump(checksum));
+    });
 
     if (!verbose) {
       const renderer = new Renderer(createTerminalStreamer(TERMINAL_STREAM));

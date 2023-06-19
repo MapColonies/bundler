@@ -49,28 +49,27 @@ output:
     - assets: []
     - helm:
         - id-merger:v1.3.1.tgz
-parameters:
-  repositories:
-    - id: MapColonies-osm-sync-tracker-v3.3.0
-      buildImageLocally: true
-      includeMigrations: true
-      includeAssets: true
-      includeHelmPackage: true
-    - id: MapColonies-id-2-osm-v2.0.0
-      includeMigrations: true
-      includeAssets: true
-      includeHelmPackage: true
-    - id: MapColonies-external-to-osm-tag-mapping-v1.7.5
-      buildImageLocally: false
-      includeAssets: false
-      includeHelmPackage: false
-    - id: MapColonies-osm-change-generator-server-v1.4.4
-      buildImageLocally: true
-      includeAssets: true
-      includeHelmPackage: true
-    - id: MapColonies-change-merger-v1.3.4
-      buildImageLocally: false
-      includeAssets: true
-      includeHelmPackage: true
-    - id: MapColonies-id-merger-v1.3.1
-      includeHelmPackage: true
+input:
+  - repository: MapColonies/osm-sync-tracker@v3.3.0
+    buildImageLocally: true
+    includeMigrations: true
+    includeAssets: true
+    includeHelmPackage: true
+  - repository: MapColonies/id-2-osm@v2.0.0
+    includeMigrations: true
+    includeAssets: true
+    includeHelmPackage: true
+  - repository: MapColonies/external-to-osm-tag-mapping@v1.7.5
+    buildImageLocally: false
+    includeAssets: false
+    includeHelmPackage: false
+  - repository: MapColonies/osm-change-generator-server@v1.4.4
+    buildImageLocally: true
+    includeAssets: true
+    includeHelmPackage: true
+  - repository: MapColonies/change-merger@v1.3.4
+    buildImageLocally: false
+    includeAssets: true
+    includeHelmPackage: true
+  - repository: MapColonies/id-merger@v1.3.1
+    includeHelmPackage: true

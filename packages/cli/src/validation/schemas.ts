@@ -1,7 +1,7 @@
+import { RepositoryBundleRequest } from '@map-colonies/bundler-common';
 import { JSONSchemaType } from 'ajv';
-import { InputFileBundleRequest } from '../commands/bundle/bundleFactory';
 
-export const INPUT_BUNDLE_REQUEST_SCHEMA: JSONSchemaType<InputFileBundleRequest[]> = {
+export const BUNDLE_REQUEST_SCHEMA: JSONSchemaType<RepositoryBundleRequest[]> = {
   type: 'array',
   minItems: 1,
   uniqueItemProperties: ['repository'],
@@ -39,5 +39,18 @@ export const INPUT_BUNDLE_REQUEST_SCHEMA: JSONSchemaType<InputFileBundleRequest[
         nullable: true,
       },
     },
+  },
+};
+
+export interface HasBundleRequest {
+  input: RepositoryBundleRequest[];
+}
+
+export const HAS_BUNDLE_REQUEST_SCHEMA: JSONSchemaType<HasBundleRequest> = {
+  type: 'object',
+  additionalProperties: true,
+  required: ['input'],
+  properties: {
+    input: BUNDLE_REQUEST_SCHEMA,
   },
 };

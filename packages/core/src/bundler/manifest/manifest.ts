@@ -1,17 +1,8 @@
-import { TAR_FORMAT, TAR_GZIP_ARCHIVE_FORMAT } from '@map-colonies/bundler-common';
+import { TAR_FORMAT, TAR_GZIP_ARCHIVE_FORMAT, RepositoryBundleRequest } from '@map-colonies/bundler-common';
 import { SOURCE_CODE_ARCHIVE, TGZ_ARCHIVE_FORMAT } from '../constants';
 import { BaseOutput, RepositoryProfile } from '../interfaces';
-import { stringifyRepositoryId } from '../../common/util';
+import { repoIdToRepoStr, stringifyRepositoryId } from '../../common/util';
 import { BundleDirs } from '../enums';
-
-interface RepositoryParameters {
-  id: string;
-  buildImageLocally?: boolean;
-  buildArgs?: Record<string, string>;
-  includeMigrations?: boolean;
-  includeAssets?: boolean;
-  includeHelmPackage?: boolean;
-}
 
 type OptionalBundleDirs = {
   [key in BundleDirs]?: string[];
@@ -23,7 +14,7 @@ export interface BundleOutputTree {
 
 export interface RepositoriesManifest {
   output: BundleOutputTree;
-  parameters: { repositories: RepositoryParameters[] };
+  input: RepositoryBundleRequest[];
 }
 
 export type Manifest = BaseOutput & RepositoriesManifest;
@@ -48,11 +39,12 @@ export const manifestRepositories = (repositories: RepositoryProfile[]): Reposit
 
     const repoOutput = [`${SOURCE_CODE_ARCHIVE}.${TAR_GZIP_ARCHIVE_FORMAT}`, { images: images }, { assets: assets }, { helm: helm }];
 
-    const id = stringifyRepositoryId(repo.id);
-    outputTree[id] = repoOutput;
+    const repository = repoIdToRepoStr(repo.id);
+    const repositoryDir = stringifyRepositoryId(repo.id);
+    outputTree[repositoryDir] = repoOutput;
 
     return {
-      id,
+      repository,
       buildImageLocally: repo.buildImageLocally,
       includeMigrations: repo.includeMigrations,
       includeAssets: repo.includeAssets,
@@ -63,8 +55,6 @@ export const manifestRepositories = (repositories: RepositoryProfile[]): Reposit
 
   return {
     output: outputTree,
-    parameters: {
-      repositories: repositoryParams,
-    },
+    input: repositoryParams,
   };
 };

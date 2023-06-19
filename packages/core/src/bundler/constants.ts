@@ -16,5 +16,4 @@ export const ZIP_ARCHIVE_FORMAT = 'zip';
 
 export const DEFAULT_BUNDLER_DIR = 'bundler';
 export const DEFAULT_BUNDLER_OUTPUT = `bundle.${TAR_GZIP_ARCHIVE_FORMAT}`;
-export const MANIFEST_FILE = 'manifest.yaml';
 export const DEFAULT_CHECKSUM_ALGORITHM = 'sha256';

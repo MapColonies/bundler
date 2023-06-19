@@ -1,7 +1,16 @@
 import { hostname } from 'os';
 import { mkdir, rm, writeFile } from 'fs/promises';
 import { basename, dirname, join } from 'path';
-import { GITHUB_ORG, ILogger, Status, DEFAULT_CONTAINER_REGISTRY, CHECKSUM_FILE, TAR_FORMAT } from '@map-colonies/bundler-common';
+import {
+  GITHUB_ORG,
+  ILogger,
+  Status,
+  DEFAULT_CONTAINER_REGISTRY,
+  CHECKSUM_FILE,
+  TAR_FORMAT,
+  Repository,
+  MANIFEST_FILE,
+} from '@map-colonies/bundler-common';
 import { DockerBuildArgs, DockerPullArgs, DockerSaveArgs, HelmPackage, Image, TerminationResult } from '@map-colonies/bundler-child-process';
 import { nanoid } from 'nanoid';
 import { IGithubClient } from '@map-colonies/bundler-github';
@@ -12,8 +21,8 @@ import { TaskCommander } from '../taskCommander/taskCommander';
 import { IRepositoryProvider } from '../repositoryProvider/interfaces';
 import { provideDefaultOptions, stringifyRepositoryId, writeBuffer } from '../common/util';
 import { DownloadObject } from '../http/download';
-import { BundlerOptions, BundlePath, Repository, RepositoryProfile, TaskKind, BundlerEvents, BaseOutput, RepositoryTask } from './interfaces';
-import { DEFAULT_BRANCH, DOCKER_FILE, MIGRATIONS_DOCKER_FILE, HELM_DIR, MANIFEST_FILE } from './constants';
+import { BundlerOptions, BundlePath, RepositoryProfile, TaskKind, BundlerEvents, BaseOutput, RepositoryTask } from './interfaces';
+import { DEFAULT_BRANCH, DOCKER_FILE, MIGRATIONS_DOCKER_FILE, HELM_DIR } from './constants';
 import { BundleStatus, BundlerStage } from './status';
 import { Manifest, manifestRepositories } from './manifest/manifest';
 import { ChecksumOutput, checksumFile } from './checksum/checksum';
@@ -418,10 +427,14 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
   }
 
   private async createManifest(base: BaseOutput): Promise<void> {
+    const repositoriesManifest = manifestRepositories(this.provider.getRepositories());
+
     const manifest: Manifest = {
       ...base,
-      ...manifestRepositories(this.provider.getRepositories()),
+      ...repositoriesManifest,
     };
+
+    this.emit('manifestCreated', manifest);
 
     await writeFile(join(this.config.workdir, this.bundleId, MANIFEST_FILE), dump(manifest));
   }
@@ -434,6 +447,8 @@ export class Bundler extends TypedEmitter<BundlerEvents> {
       destination: `${this.config.outputPath}-${CHECKSUM_FILE}`,
       checksum: bundleChecksum,
     };
+
+    this.emit('checksumCreated', checksumOutput);
 
     await writeFile(checksumOutput.destination, dump(checksumOutput));
   }
