@@ -1,17 +1,20 @@
-import { Bundler, BundlerOptions, CleanupMode, BundleStatus, Repository } from '@map-colonies/bundler-core';
-import { IGithubClient, RepositoryId } from '@map-colonies/bundler-github';
-import { ExitCodes } from '@map-colonies/bundler-common';
+import { join, basename } from 'path';
+import { Bundler, BundlerOptions, CleanupMode, BundleStatus } from '@map-colonies/bundler-core';
+import { IGithubClient } from '@map-colonies/bundler-github';
+import { ExitCodes, MANIFEST_FILE, Repository, RepositoryId } from '@map-colonies/bundler-common';
 import { FactoryFunction } from 'tsyringe';
 import { Renderer, createTerminalStreamer, BundleStyleRequestBuilder as Builder } from '@map-colonies/bundler-terminal-ui';
 import { Logger } from 'pino';
 import { Arguments, Argv, CommandModule } from 'yargs';
+import { dump } from 'js-yaml';
 import { SERVICES, TERMINAL_STREAM } from '../../common/constants';
 import { GlobalArguments } from '../../cliBuilderFactory';
 import { check as checkWrapper } from '../../wrappers/check';
+import { writeFileRecursive } from '../../common/util';
 import { coerce as coerceWrapper } from '../../wrappers/coerce';
 import { IConfig } from '../../config/configStore';
-import { repoProvidedCheck } from './checks';
-import { inputCoerce, repositoriesCoerce, repositoryCoerce } from './coerces';
+import { outputValidityCheck, repoProvidedCheck } from './checks';
+import { inputCoerce, outputCoerce, repositoriesCoerce, repositoryCoerce } from './coerces';
 import { command, describe, EXAMPLES } from './constants';
 
 interface RequestArguments {
@@ -22,10 +25,7 @@ interface RequestArguments {
   includeMigrations: boolean;
   includeAssets: boolean;
   includeHelmPackage: boolean;
-}
-
-export interface InputFileBundleRequest extends Omit<Repository, 'id'> {
-  repository: string;
+  override?: boolean;
 }
 
 export type BundleArguments = GlobalArguments & Required<Omit<BundlerOptions, 'logger' | 'githubClient' | 'provider'> & RequestArguments>;
@@ -50,6 +50,7 @@ export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments
         type: 'string',
         demandOption: true,
       })
+      .option('override', { alias: 'O', describe: 'potentially override an existing output file path', type: 'boolean', default: false })
       .option('cleanupMode', {
         alias: 'c',
         describe: 'the bundle execution cleanup mode',
@@ -104,7 +105,9 @@ export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments
         conflicts: ['repository', 'repositories'],
       })
       .check(checkWrapper(repoProvidedCheck, logger))
+      .check(checkWrapper(outputValidityCheck, logger))
       .coerce('input', coerceWrapper(inputCoerce, logger))
+      .coerce('outputPath', coerceWrapper(outputCoerce, logger))
       .coerce('repository', coerceWrapper(repositoryCoerce, logger))
       .coerce('repositories', coerceWrapper(repositoriesCoerce, logger));
 
@@ -144,6 +147,16 @@ export const bundleCommandFactory: FactoryFunction<CommandModule<GlobalArguments
     logger.info({ msg: 'executing command', command, args: { workdir, outputPath, cleanupMode, isDebugMode, verbose }, payload: bundleRequest });
 
     const bundler = new Bundler({ workdir, outputPath, cleanupMode, isDebugMode, verbose, githubClient, logger });
+
+    bundler.on('manifestCreated', async (manifest) => {
+      const path = join(configStore.get<string>('historyDir'), manifest.createdAt, MANIFEST_FILE);
+      await writeFileRecursive(path, dump(manifest));
+    });
+
+    bundler.on('checksumCreated', async (checksum) => {
+      const path = join(configStore.get<string>('historyDir'), checksum.createdAt, basename(checksum.destination));
+      await writeFileRecursive(path, dump(checksum));
+    });
 
     if (!verbose) {
       const renderer = new Renderer(createTerminalStreamer(TERMINAL_STREAM));

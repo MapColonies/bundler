@@ -46,6 +46,7 @@ Global Options:
 Options:
   -w, --workdir                                     the bundler working directory  [string] [default: "$HOME/.bundler-cli/workdir"]
   -o, --outputPath                                  the bundler output file path  [string] [required]
+  -O, --override                                    potentially override an existing output file path  [boolean] [default: false]
   -c, --cleanupMode                                 the bundle execution cleanup mode  [string] [choices: "none", "on-the-fly", "post"] [default: "on-the-fly"]
   -d, --isDebugMode, --debug                        child processes logs will be logged  [boolean] [default: false]
   -l, --buildImageLocally, --build-image-locally    build image(s) locally  [boolean] [default: false]
@@ -64,6 +65,8 @@ Examples:
 
 - `workdir`: a single bundle run command working directory, this directory consists mainly of temporary files and its cleaning up is defined by `cleanupMode`
 - `outputPath`: the path to the resulting bundle `tar.gz` archive. other than the bundle archive the bundler will output a [checksum file](#checksum)
+- `override`: potentially override an existing output file path
+- `isDebugMode`: child processes (docker, helm, etc.) logs will be logged as well
 - `cleanupMode`: supports 3 modes
     - `none`: won't clean up anything
     - `on-the-fly`: cleans dangling artifacts mid-execution time once they are unnecessary
@@ -75,7 +78,8 @@ Examples:
 - the repositories for a bundle can be provided in 3 fashions that conflict with one another:
     - `repository`: bundle a single repository
     - `repositories`: bundle multiple repositories
-    - `input`: the path to an input file consisting of the repositories to be bundled and their include artifacts flags. this option provides the possibility to have a mixture of include flags and also a `buildArgs` option (key value string pair object) that corresponds to a truthy `buildImageLocally` flag. once provided the other include flags will be dismissed, [see example](packages/cli/examples/input.json)
+    - `input`: the path to an input file consisting of the repositories to be bundled and their include-artifacts flags. this option provides the possibility to have a mixture of include flags as well as a `buildArgs` option (key value string pair object) that corresponds to a truthy `buildImageLocally` flag. once provided the other include flags will be dismissed, [see example](packages/cli/examples/input.json).
+    `input` could also be a path to a [`manifest.yaml file`](packages/cli/examples/manifest.yaml), previous bundle manifests are located in `historyDir`
 
 ### Manifest
 The bundler will produce a `manifest.yaml` file depicting the input parameters and the resulting output of the bundle. the file will be located in the bundle archive root level, [see example](packages/cli/examples/manifest.yaml)
@@ -103,7 +107,7 @@ Examples:
 
 ## Verify command
 
-Checks that all pre-requisites are set up correctly: internet connectivity, docker, helm, and possibly provided github access token
+Checks that all pre-requisites are set up correctly: internet connectivity, docker, docker-pull-registry, helm, and possibly provided github access token
 
 ```
 > bundler verify
@@ -122,10 +126,12 @@ The cli holds a local configuration located in the cli working directory `$HOME/
 
 The configuration has the following schema:
 - `workdir`: path to a single bundle command working directory. defaults to `$HOME/.bundler-cli/workdir`
+- `historyDir`: path to the a past bundles manifests and checksums directory. defaults to `$HOME/.bundler-cli/history`
 - `githubAccessToken`: a consistent token to be used by default. can be overrided by providing --token flag
 ```json
 {
     "workdir": "/tmp/bundler-cli",
+    "historyDir": "/tmp/bundler-cli/history",
     "githubAccessToken": "secret"
 }
 ```

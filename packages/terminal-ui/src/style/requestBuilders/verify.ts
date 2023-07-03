@@ -19,7 +19,7 @@ export const NOT_VERIFIED_MESSAGE = `${PADDING}something is wrong 🥺${PADDING}
 
 export class VerifyStyleRequestBuilder extends StyleRequestBuilder {
   public build(data: VerifyEntity[]): StyleRequest {
-    let overallStatus = data.every((entity) => entity.result.status === Status.SUCCESS) ? Status.SUCCESS : Status.PENDING;
+    let overallStatus = data.every((entity) => [Status.SUCCESS, Status.WARNING].includes(entity.result.status)) ? Status.SUCCESS : Status.PENDING;
     overallStatus = data.some((entity) => entity.result.status === Status.FAILURE) ? Status.FAILURE : overallStatus;
 
     const main = [
@@ -29,7 +29,9 @@ export class VerifyStyleRequestBuilder extends StyleRequestBuilder {
         content: { data: data.map((entity) => ({ ...entity.result, name: entity.name })), config: columnifyOptions },
       },
     ];
+
     const message = overallStatus === Status.SUCCESS ? VERIFIED_MESSAGE : NOT_VERIFIED_MESSAGE;
+
     return {
       prefix: { content: PREFIX(COMMAND_NAME), isBold: true, status: overallStatus },
       suffix: overallStatus !== Status.PENDING ? { content: message, level: Level.FIRST, isBold: true, status: overallStatus } : undefined,

@@ -1,3 +1,4 @@
+import { RepositoryId } from '@map-colonies/bundler-common';
 import { GithubAsset, GithubRepository, MediaType, RepositoryType } from './types';
 
 export interface IGithubClient {
@@ -6,12 +7,6 @@ export interface IGithubClient {
   listRepositoriesGenerator: (org: string, type?: RepositoryType, filter?: RepositoryFilter, perPage?: number) => AsyncGenerator<GithubRepository[]>;
   listAssets: (id: Required<RepositoryId>) => Promise<GithubAsset[]>;
   ping: () => Promise<void>;
-}
-
-export interface RepositoryId {
-  owner?: string;
-  name: string;
-  ref?: string;
 }
 
 export interface RepositoryFilter {

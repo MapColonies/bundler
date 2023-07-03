@@ -14,7 +14,7 @@ import { LIST_COMMAND_FACTORY } from './commands/list/constants';
 import { listCommandFactory } from './commands/list/listFactory';
 import { VERIFY_COMMAND_FACTORY } from './commands/verify/constants';
 import { verifyCommandFactory } from './commands/verify/verifyFactory';
-import { loadLocalConfig, LOGS_DIR } from './config/local';
+import { DEFAULT_LOCAL_CONFIG, loadLocalConfig, LOGS_DIR } from './config/local';
 import { ConfigStore } from './config/configStore';
 import { BASE_LOGGER_OPTIONS, DEFAULT_LOG_LEVEL, LogTarget, LOG_FILE_EXTENSION } from './common/logger';
 
@@ -35,6 +35,7 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
 
   const logPath = join(LOGS_DIR, `${new Date().toISOString()}.${LOG_FILE_EXTENSION}`);
   configStore.set('logPath', logPath);
+  configStore.set('historyDir', localConfig.historyDir ?? DEFAULT_LOCAL_CONFIG.historyDir);
 
   const logger = pino({
     ...BASE_LOGGER_OPTIONS,
