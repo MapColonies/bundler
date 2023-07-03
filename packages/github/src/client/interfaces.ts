@@ -1,4 +1,4 @@
-import { RepositoryId } from '@map-colonies/bundler-common/src';
+import { RepositoryId } from '@map-colonies/bundler-common';
 import { GithubAsset, GithubRepository, MediaType, RepositoryType } from './types';
 
 export interface IGithubClient {
