@@ -14,8 +14,7 @@
     "prebuild": "npm run clean",
     "build": "tsc --project tsconfig.build.json",
     "start": "npm run build && cd dist && node ./index.js",
-    "clean": "rimraf dist",
-    "publish": "npm run publish"
+    "clean": "rimraf dist"
   },
   "repository": {
     "type": "git",
